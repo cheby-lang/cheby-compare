@@ -1,0 +1,2 @@
+libs = []
+notes = "core:encoding/json (standard library): json.unmarshal into structs, json.marshal with default options (compact). Each repetition's records, kept list and output are freed before the next."

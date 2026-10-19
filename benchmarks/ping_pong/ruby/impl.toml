@@ -1,0 +1,2 @@
+libs = []
+notes = "OS threads under the GVL (Thread.new, join); SizedQueue.new(1), since SizedQueue has no capacity 0. A is the main thread."

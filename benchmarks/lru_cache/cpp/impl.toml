@@ -1,0 +1,1 @@
+notes = "Shape B: std::unordered_map<std::int64_t, std::list<Entry>::iterator> plus std::list<Entry>, splice to move a hit to the end; on eviction the front node is spliced to the back and overwritten (the SPEC's 'may reuse that node'), so a miss at capacity allocates no list node. The map reserves capacity up front."

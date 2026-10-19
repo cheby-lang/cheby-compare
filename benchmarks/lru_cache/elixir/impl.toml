@@ -1,0 +1,2 @@
+libs = []
+notes = "Shape C: entries a Map key -> {value, tick}, by_tick a :gb_trees, evict with :gb_trees.take_smallest, checksum with a :gb_trees iterator."

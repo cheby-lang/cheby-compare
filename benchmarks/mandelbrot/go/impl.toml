@@ -1,0 +1,1 @@
+notes = "Explicit float64(...) conversions on zr*zr, zi*zi and 2.0*zr*zi forbid Go's arm64 FMA fusion, as the SPEC requires."

@@ -1,0 +1,1 @@
+notes = "std/json: parseJson + to(seq[Record]) for typed decoding, % on the output objects (fields in declaration order) and $ for compact text. Most of the run time is std/json building a full JsonNode tree in both directions (parseJson before to(), % before $); the only streaming alternative in std, parsejson, is event-based parsing, which the SPEC forbids."

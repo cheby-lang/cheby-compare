@@ -1,0 +1,2 @@
+libs = []
+notes = "Tree nodes are allocated from std.heap.smp_allocator, as the SPEC requires for Zig. The other Zig programs use init.gpa, which on macOS is std.heap.c_allocator (libc malloc), because Zig always links libSystem there. Rust and C++ binary_trees use libc malloc, so this is the one benchmark where Zig's allocator differs from theirs."

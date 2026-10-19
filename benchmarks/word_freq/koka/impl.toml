@@ -1,0 +1,2 @@
+libs = []
+notes = "Koka 3.2's std has no map, hash or sort: counts live in a hand-written persistent red-black tree keyed by string (FBIP zipper insert, after samples/basic/rbtree-fbip.kk), ordered by std cmp on strings (byte order), and the entries are sorted by a hand-written top-down merge sort. Splits with std split on \"\\n\" then \" \", skipping empty parts."

@@ -1,0 +1,2 @@
+libs = []
+notes = "std.mem.tokenizeAny over the file buffer, std.StringHashMap(u64) with keys sliced from the buffer, std.mem.sort (stable)."

@@ -1,0 +1,1 @@
+notes = "Shape A: LinkedHashMap<Long, Long>(capacity, 0.75f, true) in access order, get moves the key, removeEldestEntry evicts"

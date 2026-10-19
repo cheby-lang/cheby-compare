@@ -1,0 +1,2 @@
+libs = []
+notes = "Three tail-recursive functions (rows, columns, escape_time); the totals are a small record; ci is computed inside the row loop."

@@ -1,0 +1,1 @@
+notes = "Mutable Body structs in a slice, updated through pointers. Go's default arm64 FMA contraction is left on, which the SPEC allows."

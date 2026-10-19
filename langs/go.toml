@@ -1,0 +1,23 @@
+id = "go"
+name = "Go"
+kind = "aot"
+version = "go version"
+comment = "//"
+extensions = [".go"]
+# GOTOOLCHAIN=local: never switch to (or download) another toolchain because of a go.mod line.
+env = { GOTOOLCHAIN = "local", GOCACHE = "{build}/gocache" }
+
+# One module per implementation: go.mod says `module main` and `go 1.27`, sources sit in the
+# implementation directory (package main). Plain `go build` is Go's release build: default -gcflags,
+# no -trimpath, no -ldflags=-s -w.
+#
+# Cold compile: GOCACHE (set in env) is per implementation, {build}/gocache, so a build never uses
+# the user's cache or another program's. `clean` removes the executable and that cache, refreshes
+# {build}/gocache.warm with every package outside the main module that the program depends on
+# (std, plus any third-party module; a no-op when it is current), and clones it back to
+# {build}/gocache (APFS clonefile, `cp -c`). The timed build then compiles and links only this
+# program's own packages. go has no build daemon.
+build = "go build -o {build}/main ."
+clean = '''rm -rf {build}/main "$GOCACHE" && W="$GOCACHE.warm" && pkgs=$(GOCACHE="$W" go list -deps -f '{{if not (and .Module .Module.Main)}}{{.ImportPath}}{{end}}' .) && GOCACHE="$W" go build $pkgs && { cp -cR "$W" "$GOCACHE" 2>/dev/null || cp -R "$W" "$GOCACHE"; }'''
+run = "{build}/main {args}"
+artifact = "{build}/main"

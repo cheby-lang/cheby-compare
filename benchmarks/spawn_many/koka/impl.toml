@@ -1,0 +1,4 @@
+libs = []
+notes = "Per the SPEC's Koka row, the program writes its own cooperative scheduler as an effect handler (`effect tasks` with `spawn` and `join`): `spawn` queues a suspended task (a closure) in a FIFO and returns a handle (a ref cell for its result), `join` runs queued tasks until that handle's result is ready. Single-threaded, no stacks: a task here never blocks, so running it is a closure call. Not a runtime primitive, so not comparable with the other rows (std/async's `interleaved(list)` takes a fixed list and has no spawn handle). The batch's handles are built with an accumulator loop: `list.map` with an effectful function copies its TRMC context on every element (quadratic, 0.6 s instead of 0.02 s at bench)."
+comparable = false
+comparable_note = "Koka: cooperative single-threaded std/async (no dynamic spawn); measured but not comparable, and left out of the geometric means"

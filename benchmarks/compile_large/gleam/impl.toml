@@ -1,0 +1,2 @@
+libs = []
+notes = "One Gleam package `main`, src/m0000.gleam per module (custom types Item and Shape, pub base/entry). The langs/gleam.toml build/clean apply unchanged: the project is copied to {build}/proj and built with one cold `gleam build` (Gleam compiles modules in parallel by default); clean removes only build/dev/erlang/main, keeping gleam_stdlib compiled."

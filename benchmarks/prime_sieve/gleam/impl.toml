@@ -1,0 +1,2 @@
+libs = ["gleam_erlang"]
+notes = "Pull protocol: each stage creates its Subject(Next) request subject and Subject(Int) number subject once and hands the request subject to main over a setup subject. Shut down by option 1 (halt(0) after main with the stages blocked)."

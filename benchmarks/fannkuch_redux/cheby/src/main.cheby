@@ -1,0 +1,134 @@
+//! Fannkuch-redux: flips over every permutation of 0..n, in the order the
+//! counting algorithm generates them. Prints the alternating checksum and
+//! the maximum flip count.
+//!
+//! Cheby has no mutable arrays, so the permutations and the counters are
+//! lists, and flips and rotations are index updates with `list::get` and
+//! `list::set`. `list::set` updates a list in place when nothing else
+//! holds it.
+
+import std::env
+import std::int
+import std::io
+import std::list
+import std::result
+
+fn main() -> Result<Nil, String> {
+  use n <- result::try(parse_args(env::args()))
+  let (checksum, max_flips) = fannkuch(int::max(n, 1))
+  io::println("{checksum}")
+  io::println("Pfannkuchen({n}) = {max_flips}")
+  Ok(Nil)
+}
+
+/// Reads the single argument, N.
+fn parse_args(args: List<String>) -> Result<Int, String> {
+  case args {
+    [text] => case int::parse(text) {
+      Ok(n) => Ok(n)
+      Err(_) => Err("N must be an integer, got {text}")
+    }
+    _ => Err("usage: fannkuch_redux N")
+  }
+}
+
+/// Returns the checksum and the maximum flip count over every
+/// permutation of 0..n, for n >= 1.
+fn fannkuch(n: Int) -> (Int, Int) {
+  fn step(perm1, count, r, index, checksum, max_flips) {
+    let filled = fill_counts(count, r)
+    let flips = count_flips(perm1, 0)
+    let signed = case index % 2 {
+      0 => flips
+      _ => 0 - flips
+    }
+    let next_checksum = checksum + signed
+    let next_max = int::max(max_flips, flips)
+    case next_permutation(n, perm1, filled, 1) {
+      Next(perm, counts, level) => step(perm, counts, level, index + 1, next_checksum, next_max)
+      Done => (next_checksum, next_max)
+    }
+  }
+  step(list::range(0, n), list::repeat(0, n), n, 0, 0, 0)
+}
+
+/// Sets `count[i - 1]` to `i` for `i` from `r` down to 2.
+fn fill_counts(count: List<Int>, r: Int) -> List<Int> {
+  case r {
+    1 => count
+    _ => fill_counts(list::set(count, r - 1, r), r - 1)
+  }
+}
+
+/// Counts the prefix reversals needed to bring 0 to the front.
+fn count_flips(perm: List<Int>, flips: Int) -> Int {
+  case perm {
+    [0, ..] => flips
+    [k, ..] => count_flips(reverse_prefix(perm, k + 1), flips + 1)
+    [] => flips
+  }
+}
+
+/// Reverses the first `length` elements of `perm` by swapping its ends
+/// inward. After the first swap the list is unique, so `list::set`
+/// updates it in place.
+fn reverse_prefix(perm: List<Int>, length: Int) -> List<Int> {
+  swap_inward(perm, 0, length - 1)
+}
+
+/// Swaps `perm[low]` and `perm[high]`, then the pair inside them, until
+/// the indexes meet.
+fn swap_inward(perm: List<Int>, low: Int, high: Int) -> List<Int> {
+  case low < high {
+    True => {
+      let a = list_at(perm, low)
+      let b = list_at(perm, high)
+      let swapped = list::set(list::set(perm, low, b), high, a)
+      swap_inward(swapped, low + 1, high - 1)
+    }
+    False => perm
+  }
+}
+
+/// The state after one step of the permutation generator.
+type Step {
+  Next(List<Int>, List<Int>, Int),
+  Done,
+}
+
+/// Advances `perm1` to the next permutation, starting at level `r`.
+fn next_permutation(n: Int, perm1: List<Int>, count: List<Int>, r: Int) -> Step {
+  case r == n {
+    True => Done
+    False => {
+      let rotated = rotate_prefix(perm1, r + 1)
+      let left = list_at(count, r) - 1
+      let counts = list::set(count, r, left)
+      case left > 0 {
+        True => Next(rotated, counts, r)
+        False => next_permutation(n, rotated, counts, r + 1)
+      }
+    }
+  }
+}
+
+/// Moves the first element of `perm` to position `length - 1`, shifting
+/// the elements before it one place left. The first element is read
+/// before the shift, so nothing else holds `perm` while it runs and
+/// `list::set` can update it in place.
+fn rotate_prefix(perm: List<Int>, length: Int) -> List<Int> {
+  fn shift(xs, i) {
+    case i < length - 1 {
+      True => shift(list::set(xs, i, list_at(xs, i + 1)), i + 1)
+      False => xs
+    }
+  }
+  let first = list_at(perm, 0)
+  list::set(shift(perm, 0), length - 1, first)
+}
+
+/// Reads `xs[index]`, which the algorithm guarantees exists.
+fn list_at(xs: List<Int>, index: Int) -> Int {
+  let assert Some(x) = list::get(xs, index)
+  x
+}

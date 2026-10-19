@@ -1,0 +1,2 @@
+libs = ["gleam_json"]
+notes = "gleam_json 3.x (over OTP's json module): json.parse_bits with gleam/dynamic/decode decoders into custom types, json.object (ordered) and json.to_string. The file is read with an @external to file:read_file/1."

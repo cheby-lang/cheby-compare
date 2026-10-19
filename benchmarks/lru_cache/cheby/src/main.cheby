@@ -1,0 +1,109 @@
+//! LRU cache: a capacity-bounded cache under a skewed pseudo-random key stream.
+//!
+//! The arguments are the capacity and the number of operations. Each
+//! operation draws a key, mostly from a hot set, and looks it up. A hit
+//! makes the key the most recent, and a miss inserts it, evicting the
+//! least recent key when the cache is full. The cache is an ordered map:
+//! removing a key and inserting it again moves it to the end (D-340), so
+//! the first entry is the least recently used one.
+
+import std::env
+import std::int
+import std::io
+import std::ordered_map
+import std::ordered_map::{OrderedMap}
+
+/// Keeps the sums small.
+const modulus: Int = 1_000_000_007
+
+/// The modulus of the Lehmer generator, 2^31 - 1.
+const lehmer_m: Int = 2_147_483_647
+
+/// The multiplier of the Lehmer generator.
+const lehmer_a: Int = 48_271
+
+/// The first state of the generator.
+const seed: Int = 42
+
+/// The percentage of draws that pick a hot key.
+const hot_percent: Int = 80
+
+/// The key space is this many times the capacity.
+const key_space_factor: Int = 16
+
+/// The counts so far.
+type Totals {
+  hits: Int,
+  misses: Int,
+  values: Int,
+}
+
+fn main() {
+  let assert [capacity_arg, ops_arg, ..] = env::args()
+  let assert Ok(capacity) = int::parse(capacity_arg)
+  let assert Ok(ops) = int::parse(ops_arg)
+  let start = Totals { hits: 0, misses: 0, values: 0 }
+  let (cache, totals) = simulate(ordered_map::new(), capacity, ops, seed, start)
+  let (_, checksum) = ordered_map::fold(cache, (1, 0), fn((position, sum), key, _) {
+    (position + 1, (sum + position * key) % modulus)
+  })
+  io::println("hits {totals.hits}")
+  io::println("misses {totals.misses}")
+  io::println("values {totals.values}")
+  io::println("checksum {checksum}")
+}
+
+/// Runs `remaining` operations on `cache`, drawing keys from the
+/// generator after `state`.
+fn simulate(
+  cache: OrderedMap<Int, Int>,
+  capacity: Int,
+  remaining: Int,
+  state: Int,
+  totals: Totals,
+) -> (OrderedMap<Int, Int>, Totals) {
+  case remaining {
+    0 => (cache, totals)
+    _ => {
+      let next = state * lehmer_a % lehmer_m
+      let key = pick_key(next, capacity)
+      case ordered_map::get(cache, key) {
+        Some(value) => {
+          let moved = ordered_map::insert(ordered_map::remove(cache, key), key, value)
+          let counted = Totals {
+            ..totals,
+            hits: totals.hits + 1,
+            values: (totals.values + value) % modulus,
+          }
+          simulate(moved, capacity, remaining - 1, next, counted)
+        }
+        None => {
+          let inserted = ordered_map::insert(evict(cache, capacity), key, key * 2 + 1)
+          let counted = Totals { ..totals, misses: totals.misses + 1 }
+          simulate(inserted, capacity, remaining - 1, next, counted)
+        }
+      }
+    }
+  }
+}
+
+/// The key that the generator state `state` picks: a hot key below
+/// `capacity`, or a cold key in the rest of the key space.
+fn pick_key(state: Int, capacity: Int) -> Int {
+  let draw = state / 100
+  case {
+    state % 100 < hot_percent => draw % capacity
+    _ => capacity + draw % (capacity * (key_space_factor - 1))
+  }
+}
+
+/// `cache` with its least recent entry removed when it is full.
+fn evict(cache: OrderedMap<Int, Int>, capacity: Int) -> OrderedMap<Int, Int> {
+  case ordered_map::size(cache) < capacity {
+    True => cache
+    False => {
+      let assert Some((oldest, _)) = ordered_map::first(cache)
+      ordered_map::remove(cache, oldest)
+    }
+  }
+}

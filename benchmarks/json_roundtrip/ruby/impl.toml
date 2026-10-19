@@ -1,0 +1,2 @@
+libs = []
+notes = "Standard library json (default gem 2.18.0, C extension; no third-party gem): JSON.parse into insertion-ordered Hashes and JSON.generate (compact). Output records are new Hashes built in the SPEC's key order, sharing tags, address and history with the parsed records."

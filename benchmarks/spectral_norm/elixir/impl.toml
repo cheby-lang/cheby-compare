@@ -1,0 +1,2 @@
+libs = []
+notes = "A(i, j) is a helper a/2 marked @compile {:inline, a: 2}, so it is inlined into the two inner loops. Vectors are lists, built with Enum.map over the index list and walked with tail-recursive sums."

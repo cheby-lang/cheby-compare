@@ -1,0 +1,2 @@
+libs = []
+notes = "Default build, clang's default -ffp-contract=on, which the SPEC allows. clang fuses `sum += entry * x[j]` into an fmadd on the loop-carried dependency, whose latency is longer than a plain fadd: with -ffp-contract=off the same source ran about 25-35% faster (user 0.88-1.02 s vs 1.32 s) with the same output. Kept at the default because the SPEC does not require non-fused arithmetic here (unlike mandelbrot)."

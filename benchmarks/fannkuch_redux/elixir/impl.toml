@@ -1,0 +1,2 @@
+libs = []
+notes = "Rebuild shape on lists: a flip is Enum.split + Enum.reverse/2, a rotation splits perm1 at r + 1. count is a tuple updated with put_elem."

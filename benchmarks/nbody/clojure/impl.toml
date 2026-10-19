@@ -1,0 +1,2 @@
+libs = []
+notes = "Bodies are a deftype with ^:unsynchronized-mutable ^double fields behind a definterface, in a vector, updated in place (the representation the SPEC allows for Clojure numeric code)."

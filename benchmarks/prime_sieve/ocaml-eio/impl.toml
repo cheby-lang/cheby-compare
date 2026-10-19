@@ -1,0 +1,2 @@
+libs = ["eio 1.6", "eio_main 1.6"]
+notes = "Eio_main.run (one domain). The generator and every filter are Fiber.fork_daemon fibers of one Switch.run; channels are Eio.Stream.create 0 (rendezvous). Shutdown is option 2: when the main fiber returns, the switch cancels every daemon at once and waits for them, then main prints."

@@ -1,0 +1,2 @@
+libs = []
+notes = "Persistent vectors: mapv over the indices, reduce-kv over the input vector, A(i, j) a primitive ^long ^long -> ^double fn. Floats are boxed in the vectors and at each reduce-kv step."

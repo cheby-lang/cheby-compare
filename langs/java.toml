@@ -1,0 +1,23 @@
+id = "java"
+name = "Java"
+kind = "jvm"
+version = "java --version"
+comment = "//"
+extensions = [".java"]
+# The Homebrew JDK is keg-only: put its bin first on PATH, so `java` and `javac` are OpenJDK 27
+# and never the /usr/bin stubs. An impl.toml `env` merges key by key, so PATH stays set.
+env = { PATH = "/opt/homebrew/opt/openjdk/bin:$PATH" }
+
+# One layout for every benchmark: the implementation directory holds Main.java (class `Main` in
+# the default package, with `public static void main(String[] args)`) plus any other *.java
+# files, all compiled by one cold javac into {build}/classes. javac has no optimisation flags and
+# no build daemon: every build is a fresh javac process; the JIT does the optimising at run time.
+# The JDK's own classes come from its runtime image, so `clean` has nothing to keep but
+# build/java-lib/ (Jackson jars, from setup/java.sh), which lies outside {build}.
+#
+# json_roundtrip adds Jackson to the classpath in its impl.toml (see langs/java.md).
+build = "mkdir -p {build}/classes && javac -d {build}/classes *.java"
+clean = "rm -rf {build}/classes"
+# Deployable form: plain `java` on the class directory, default GC, JIT and heap flags.
+run = "java -cp {build}/classes Main {args}"
+artifact = "{build}/classes"

@@ -1,0 +1,2 @@
+libs = []
+notes = "One withTaskGroup(of: Int.self) per batch of 1,000; group.addTask { work(i) } per index, joined with `for await` over the group. Child tasks run on the default global concurrent executor (one thread per core)."

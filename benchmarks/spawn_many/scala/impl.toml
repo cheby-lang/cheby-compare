@@ -1,0 +1,2 @@
+libs = []
+notes = "One scala.concurrent.Future per index on ExecutionContext.global (the runtime's ForkJoinPool, default parallelism); each batch of 1000 joined with Await.result(Future.sequence(batch), Duration.Inf)."

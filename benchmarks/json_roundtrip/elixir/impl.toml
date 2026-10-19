@@ -1,0 +1,2 @@
+libs = []
+notes = "Built-in JSON module (JSON.decode!/1, JSON.encode!/1). Output records, addresses and history entries are structs with a derived JSON.Encoder, which writes keys in field order, because decoded maps encode in sorted key order."

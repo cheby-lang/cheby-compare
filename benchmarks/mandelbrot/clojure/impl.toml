@@ -1,0 +1,2 @@
+libs = []
+notes = "Primitive double/long loop/recur locals; escape-time is a primitive ^double ^double -> ^long fn. The per-row totals come back from the column loop as a vector, once per row."

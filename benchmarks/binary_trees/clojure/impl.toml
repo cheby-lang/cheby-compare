@@ -1,0 +1,2 @@
+libs = []
+notes = "deftype Node [left right] with nil for absent; the loops are loop/recur."

@@ -1,0 +1,2 @@
+libs = []
+notes = "One Executors.newVirtualThreadPerTaskExecutor() per batch (try-with-resources); one submit per index, Future.get() for each result."

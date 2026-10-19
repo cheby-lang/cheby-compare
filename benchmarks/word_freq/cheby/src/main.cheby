@@ -1,0 +1,70 @@
+//! Word frequency: counts the words of a text file and prints the most frequent.
+//!
+//! The first argument is the path of the file. Words are separated by
+//! spaces and newlines. The program prints the number of words, the
+//! number of distinct words, and the 20 most frequent words with their
+//! counts, by count from highest, then by word in alphabetical order.
+
+import std::env
+import std::int
+import std::io
+import std::list
+import std::map
+import std::map::{Map}
+import std::string
+
+/// How many of the most frequent words are printed.
+const top: Int = 20
+
+fn main() {
+  let assert [path, ..] = env::args()
+  let assert Ok(text) = io::read_file(path)
+  let counts = text |> string::split(_, "\n") |> list::fold(_, map::new(), count_line)
+  let ranked = counts |> map::to_list |> list::sort_with(_, by_frequency)
+  let total = list::fold(ranked, 0, fn(sum, entry) {
+    let (_, count) = entry
+    sum + count
+  })
+  let distinct = map::size(counts)
+  io::println("total {total}")
+  io::println("distinct {distinct}")
+  ranked |> list::take(_, top) |> list::each(_, print_entry)
+}
+
+/// Adds the words of one line to `counts`. Two spaces in a row, or an
+/// empty line, give an empty part, which is not a word.
+fn count_line(counts: Map<String, Int>, line: String) -> Map<String, Int> {
+  line |> string::split(_, " ") |> list::fold(_, counts, count_word)
+}
+
+/// Adds one occurrence of `word` to `counts`, unless it is empty.
+fn count_word(counts: Map<String, Int>, word: String) -> Map<String, Int> {
+  case word {
+    "" => counts
+    _ => map::upsert(counts, word, bump)
+  }
+}
+
+/// The count after one more occurrence of a word seen `previous` times.
+fn bump(previous: Option<Int>) -> Int {
+  case previous {
+    Some(n) => n + 1
+    None => 1
+  }
+}
+
+/// Orders entries by count, highest first, then by word.
+fn by_frequency(first: (String, Int), second: (String, Int)) -> Order {
+  let (first_word, first_count) = first
+  let (second_word, second_count) = second
+  case int::compare(second_count, first_count) {
+    Equal => string::compare(first_word, second_word)
+    decided => decided
+  }
+}
+
+/// Prints one entry as `<count> <word>`.
+fn print_entry(entry: (String, Int)) {
+  let (word, count) = entry
+  io::println("{count} {word}")
+}

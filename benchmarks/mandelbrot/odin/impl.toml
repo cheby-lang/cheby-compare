@@ -1,0 +1,1 @@
+notes = "Odin does not contract a * b + c into FMA by default: the -o:speed binary has no fmadd/fmsub instructions (checked with otool)."

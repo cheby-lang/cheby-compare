@@ -1,0 +1,2 @@
+libs = []
+notes = "Nodes are {:node, left, right} tuples with nil for absent; the loops are tail-recursive functions. Every node, leaves included, is a fresh heap tuple: make/2 takes the empty child as an argument and is public, because the compiler folds a leaf written as {:node, nil, nil}, or built from a nil passed between private functions, into one shared literal (the same fix in Erlang and Gleam; OCaml uses Sys.opaque_identity)."

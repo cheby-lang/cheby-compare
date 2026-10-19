@@ -1,0 +1,2 @@
+libs = ["ujson 4.4.3"]
+notes = "ujson (com.lihaoyi) value tree: ujson.read, a new ujson.Obj per kept record (insertion-ordered; address and history shared with the parsed tree, whose ujson.Obj keeps input key order), compact ujson.write"

@@ -1,0 +1,2 @@
+libs = []
+notes = "Shape B: Dictionary<long, LinkedListNode<(long Key, long Value)>> plus LinkedList<(long Key, long Value)> from System.Collections.Generic; a hit moves the node to the end with Remove and AddLast, an evict reuses the first node for the insert. The dictionary reserves capacity slots."

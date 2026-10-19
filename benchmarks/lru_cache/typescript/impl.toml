@@ -1,0 +1,2 @@
+libs = []
+notes = "Shape B: Map<number, number> from key to slot plus an index-linked list in typed arrays (Int32Array prev/next, Float64Array keys/values); the evicted slot is reused. Numbers (doubles) throughout, exact below 2^47."

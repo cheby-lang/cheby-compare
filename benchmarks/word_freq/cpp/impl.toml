@@ -1,0 +1,1 @@
+notes = "File read into a std::string; a byte-scanning loop splits on space and newline; std::unordered_map<std::string_view, std::int64_t> keyed by views into the buffer; std::sort with a comparator."

@@ -1,0 +1,11 @@
+id = "python"
+name = "Python"
+kind = "interpreter"
+version = "python3 --version"
+comment = "#"
+extensions = [".py"]
+env = {}
+
+build = ""
+clean = ""
+run = "python3 main.py {args}"

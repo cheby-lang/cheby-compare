@@ -1,0 +1,2 @@
+libs = ["tokio"]
+notes = "#[tokio::main] (multi-thread runtime, default worker count). main runs through block_on on the main thread, so it spawns B and then A with tokio::spawn, awaits A's JoinHandle for the sum, then B's. Channels are tokio::sync::mpsc::channel(1): tokio's mpsc has no capacity 0."

@@ -1,0 +1,2 @@
+libs = []
+notes = "One asyncio task per stage; channels are asyncio.Queue(maxsize=1), since Queue(maxsize=0) is unbounded. Shutdown is option 2: cancel() on every task, then asyncio.gather. With capacity 1 each stage can run one value ahead of its consumer, and that run-ahead happens before the cancel and inside the timed run: at bench a counting copy did 351,610 filter receives against the SPEC's 332,216 (+5.8%), with the generator reaching 6533 instead of 6133."

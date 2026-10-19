@@ -1,0 +1,2 @@
+libs = []
+notes = "One Mix project, app `main`, lib/m0000.ex per module (defmodule M0000 with a nested Item struct module, Shape as tagged tuples, defp for private functions). The langs/elixir.toml build/clean/run apply unchanged: one cold `mix compile` (MIX_ENV=prod, parallel by default, protocols consolidated); clean removes only _build/prod/lib/main."

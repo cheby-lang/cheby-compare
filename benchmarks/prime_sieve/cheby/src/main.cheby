@@ -1,0 +1,81 @@
+//! prime_sieve: the concurrent prime sieve, one fiber per stage,
+//! connected by channels of capacity 0.
+//!
+//! A generator fiber sends 2, 3, 4 and so on. Each prime that comes out
+//! of the pipeline adds a filter fiber to its end, which drops the
+//! multiples of that prime. After `n` primes the program prints `n`, the
+//! `n`-th prime and the sum of the first `n` primes, and returns from
+//! `main`. The pipeline's fibers are detached, so the program kills them
+//! when `main` ends and never waits for them to sieve past the `n`-th
+//! prime.
+
+import std::channel
+import std::env
+import std::fiber
+import std::int
+import std::io
+
+/// The last prime found and the sum of all primes found.
+type Found { last: Int, sum: Int }
+
+fn main() {
+  let assert [arg, ..] = env::args()
+  let assert Ok(n) = int::parse(arg)
+  let found = primes(n)
+  io::println("primes: {n}")
+  io::println("last: {found.last}")
+  io::println("sum: {found.sum}")
+}
+
+/// Finds the first `count` primes with the pipeline. Its fibers are
+/// detached and are still blocked, or still running, when it returns.
+fn primes(count: Int) -> Found {
+  // Takes the next `remaining` primes from `numbers`.
+  fn sieve(numbers, remaining, found: Found) {
+    case remaining {
+      0 => found
+      _ => {
+        // The generator never stops on its own, so a number arrives.
+        let assert Ok(prime) = channel::receive(numbers)
+        let (tx, rx) = channel::new::<Int>(0)
+        fiber::spawn_detached(fn() { filter(numbers, tx, prime) })
+        sieve(rx, remaining - 1, Found { last: prime, sum: found.sum + prime })
+      }
+    }
+  }
+
+  let (naturals_tx, naturals_rx) = channel::new::<Int>(0)
+  fiber::spawn_detached(fn() { generate(naturals_tx, 2) })
+  sieve(naturals_rx, count, Found { last: 0, sum: 0 })
+}
+
+/// Sends `n`, `n + 1`, `n + 2` and so on, until nobody receives them.
+fn generate(output: channel::Sender<Int>, n: Int) {
+  case channel::send(output, n) {
+    Ok(_) => generate(output, n + 1)
+    Err(_) => Nil
+  }
+}
+
+/// Passes on the numbers from `input` that `prime` does not divide,
+/// until either end of the pipeline goes away. The tail's receiver is
+/// dropped when `primes` returns, so the last filters can end before the
+/// program kills them.
+fn filter(input: channel::Receiver<Int>, output: channel::Sender<Int>, prime: Int) {
+  case channel::receive(input) {
+    Ok(n) when n % prime == 0 => filter(input, output, prime)
+    Ok(n) => case channel::send(output, n) {
+      Ok(_) => filter(input, output, prime)
+      Err(_) => Nil
+    }
+    Err(_) => Nil
+  }
+}
+
+test "the first ten primes" {
+  assert primes(10) == Found { last: 29, sum: 129 }
+}
+
+test "no primes spawn no filter" {
+  assert primes(0) == Found { last: 0, sum: 0 }
+}

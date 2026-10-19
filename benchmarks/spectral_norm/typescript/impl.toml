@@ -1,0 +1,1 @@
+notes = "Float64Array vectors, preallocated output and scratch arrays reused across rounds. The matrix entry's denominator is computed with 32-bit integer ops (>>> 1 for the exact halving), as the benchmarks-game JavaScript entries do; plain / 2 in doubles gives the same value and was about 20% slower."

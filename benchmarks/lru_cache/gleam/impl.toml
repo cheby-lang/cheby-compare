@@ -1,0 +1,2 @@
+libs = []
+notes = "Shape C, as the SPEC's Gleam guidance says: gleam/dict for entries (key -> #(value, tick)) and by_tick (tick -> key), with an `oldest` counter for the evict. The checksum sorts the live (tick, key) pairs by tick. Loops are tail-recursive."

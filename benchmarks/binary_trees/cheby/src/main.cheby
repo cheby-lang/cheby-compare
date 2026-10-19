@@ -1,0 +1,68 @@
+//! Binary-trees: allocates and walks many short-lived perfect binary trees.
+//!
+//! The first argument is the maximum depth `n`. The program checks a
+//! stretch tree of depth `n + 1`, keeps a long-lived tree of depth `n`,
+//! and then builds and checks `2^(n - d + 4)` trees of each depth
+//! `d = 4, 6, ..., n`. A tree's check is its number of nodes.
+
+import std::env
+import std::int
+import std::io
+
+/// The smallest depth of the short-lived trees.
+const min_depth: Int = 4
+
+/// A tree node with two optional children.
+type Tree {
+  Empty,
+  Node(Tree, Tree),
+}
+
+fn main() {
+  let assert [arg, ..] = env::args()
+  let assert Ok(max_depth) = int::parse(arg)
+  let stretch_depth = max_depth + 1
+  let stretch_check = check(make(stretch_depth))
+  io::println("stretch tree of depth {stretch_depth}\t check: {stretch_check}")
+  let long_lived = make(max_depth)
+  depths(min_depth, max_depth)
+  let lived_check = check(long_lived)
+  io::println("long lived tree of depth {max_depth}\t check: {lived_check}")
+}
+
+/// Prints the line of each depth from `depth` to `max_depth`, in steps of two.
+fn depths(depth: Int, max_depth: Int) {
+  case {
+    depth > max_depth => Nil
+    _ => {
+      let iterations = 1 << (max_depth - depth + min_depth)
+      let total = sum_checks(iterations, depth, 0)
+      io::println("{iterations}\t trees of depth {depth}\t check: {total}")
+      depths(depth + 2, max_depth)
+    }
+  }
+}
+
+/// Adds to `total` the checks of `remaining` fresh trees of depth `depth`.
+fn sum_checks(remaining: Int, depth: Int, total: Int) -> Int {
+  case remaining {
+    0 => total
+    _ => sum_checks(remaining - 1, depth, total + check(make(depth)))
+  }
+}
+
+/// A perfect binary tree of depth `depth`, which has `2^(depth + 1) - 1` nodes.
+fn make(depth: Int) -> Tree {
+  case depth {
+    0 => Node(Empty, Empty)
+    _ => Node(make(depth - 1), make(depth - 1))
+  }
+}
+
+/// The number of nodes of `tree`.
+fn check(tree: Tree) -> Int {
+  case tree {
+    Empty => 0
+    Node(left, right) => 1 + check(left) + check(right)
+  }
+}

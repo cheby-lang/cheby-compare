@@ -1,0 +1,2 @@
+libs = []
+notes = "Virtual threads for A and B ((.start (Thread/ofVirtual) f)); main joins A, reads its sum from a promise A delivers once at its end, then joins B. Channels: java.util.concurrent.SynchronousQueue, .put/.take (values boxed as Long)."

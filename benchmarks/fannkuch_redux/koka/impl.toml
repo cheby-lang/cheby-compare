@@ -1,0 +1,2 @@
+libs = []
+notes = "Index-update shape on vector<int>, through a value-returning `set` (a local var copy plus an index assignment): it copies when the vector is shared (the flip's first write, since the caller still holds perm1) and updates in place when it is unique (Koka's reuse of unique values). Loops are tail-recursive functions, as the SPEC says; the next permutation comes back as maybe<(perm1, count, r)>, one small allocation per permutation. An earlier version used while over local vars, whose captured vars became heap ref cells (about 20% slower)."

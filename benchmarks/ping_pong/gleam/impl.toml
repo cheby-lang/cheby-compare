@@ -1,0 +1,2 @@
+libs = ["gleam_erlang"]
+notes = "A is the process that runs main; B is process.spawn'ed and hands its ping subject to A over a setup subject once. Plain Subject(Int) messages, process.receive_forever, no join (B ends after its last reply)."

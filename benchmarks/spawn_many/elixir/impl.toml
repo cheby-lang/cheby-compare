@@ -1,0 +1,2 @@
+libs = []
+notes = "Task.async per index, Task.await_many(tasks, :infinity) per batch. main first sets Process.flag(:trap_exit, false): the `erl -eval` process that runs main traps exits, so each linked task's normal exit would otherwise stay in the mailbox and make the batch receives quadratic (84 s instead of 0.37 s at bench)."

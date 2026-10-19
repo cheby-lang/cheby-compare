@@ -1,0 +1,47 @@
+id = "nim"
+name = "Nim"
+kind = "aot"
+version = "nim --version"
+comment = "#"
+extensions = [".nim"]
+
+# One file, main.nim, in the implementation directory (more modules may sit next to it and be
+# imported). `-d:release` is Nim's release build (clang -O3 through the C backend); ORC and
+# --threads:on are Nim 2.2's defaults and are not repeated. No -d:danger, no LTO, no
+# -march=native. --skipUserCfg keeps a user nim.cfg out of the build; the project's own
+# main.nim.cfg / config.nims, if an implementation has one, still applies.
+#
+# Extra flags for one implementation go in its impl.toml as `nim_flags`, which `build` and the
+# warm-up build in `clean` both expand (an override of `build` alone would make the warm-up
+# compile the standard library with other flags, and the timed build would compile it again):
+#   env = { nim_flags = "--passC:-ffp-contract=off" }      (mandelbrot)
+# The default here is empty, so a nim_flags in the caller's environment never leaks in.
+env = { nim_flags = "" }
+
+# nimcache ({build}/nimcache) holds the generated C and the object files, one pair per module:
+# @m* for the program's own modules (main.nim and its siblings), @p* for system and the std
+# modules. Nim regenerates every C file on each build but rewrites, and so recompiles, only the
+# ones whose text changed; the text of a std module depends on the program (dead-code elimination)
+# and on the flags (the C compiler command is in each file's header). `clean` keeps the @p* files,
+# the compiled standard library, and removes the program's own: the @m* files, main.json and the
+# executable. So a timed build runs the whole Nim front end, regenerates all the C, and compiles
+# and links only the program's modules.
+#
+# The std objects must match this program and these flags, so `clean` does an untimed warm-up
+# build first when they may not: when nimcache has no system object, or when {build}/.nim-warm,
+# written after the last warm-up, does not match the nim version, nim_flags and the program's
+# sources (a changed program, such as a new std import, changes the std C). Otherwise it only
+# prunes. The warm-up command must stay the same as `build`. There is no compiler daemon.
+# Third-party packages (none are needed: std/json exists) would live in nimble's package dir,
+# which `clean` never touches.
+build = "nim c -d:release --skipUserCfg --hints:off $nim_flags --nimcache:{build}/nimcache --out:{build}/main main.nim"
+clean = '''
+N={build}/nimcache
+W={build}/.nim-warm
+prune() { rm -f {build}/main "$N/main.json"; [ ! -d "$N" ] || find "$N" -maxdepth 1 -type f -name '@m*' -delete; }
+warm() { nim c -d:release --skipUserCfg --hints:off $nim_flags --nimcache:"$N" --out:{build}/main main.nim >/dev/null 2>&1 || true; }
+sig() { { nim --version 2>&1 | head -n 1; echo "$nim_flags"; cat ./*.nim; } | shasum; }
+prune; S=$(sig); if [ ! -f "$N/@psystem.nim.c.o" ] || [ "$(cat "$W" 2>/dev/null)" != "$S" ]; then warm; prune; mkdir -p {build}; echo "$S" > "$W"; fi
+'''
+run = "{build}/main {args}"
+artifact = "{build}/main"

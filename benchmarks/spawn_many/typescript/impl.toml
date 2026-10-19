@@ -1,0 +1,2 @@
+libs = []
+notes = "A task is an async function that first does `await Promise.resolve()` and then returns work(i); a batch is joined with `await Promise.all(batch)`. Node is single-threaded, so the tasks run on one thread as microtasks."

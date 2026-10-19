@@ -1,0 +1,2 @@
+libs = []
+notes = "Standard library std.json with typed structs (parseFromSlice / Stringify.valueAlloc, minified by default), no third-party module; strings are slices into the input (alloc_if_needed, the default) and output structs share tags, address and history with the parsed records."

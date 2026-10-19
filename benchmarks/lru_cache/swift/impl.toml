@@ -1,0 +1,1 @@
+notes = "Shape B: [Int: Int] from key to slot (default hasher, Dictionary(minimumCapacity:)) plus an array of Node structs linked by index; Int (64-bit) for the generator state and counters."

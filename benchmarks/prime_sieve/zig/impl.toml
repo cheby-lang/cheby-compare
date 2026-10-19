@@ -1,0 +1,2 @@
+libs = []
+notes = "Generator and filters are Io.Group.concurrent tasks on the std.Io.Threaded from main(init) (default options: unlimited concurrent_limit, one OS thread each, default 16 MiB stacks). Channels are heap-allocated std.Io.Queue(i64) with a zero-length buffer (rendezvous). Shutdown is option 1: flush stdout, then std.process.exit(0) without awaiting the group."

@@ -1,0 +1,1 @@
+notes = "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands. The run time at bench size (about 0.1 s) is an estimate with a large relative error. The run is sensitive to CPU oversubscription far more than Go or rust-tokio (about 0.12 s at load 10, 0.21 to 0.25 s at load 11 to 14 on 8 cores), so measure it only on an idle machine."

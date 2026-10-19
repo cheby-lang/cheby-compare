@@ -1,0 +1,2 @@
+libs = []
+notes = "One std::jthread (an OS thread) per task; each task writes only its own slot of a per-batch std::vector<std::int64_t>. The batch's std::vector<std::jthread> goes out of scope before the sum, so every thread is joined (jthread joins in its destructor) before the batch ends, as in the Rust, Zig, Odin and Nim rows. Replaces std::async(std::launch::async), whose future.get() in Apple libc++ returns before the detached thread exits and so did less join work than the other OS-thread rows (about 0.40 s vs 1.3 s at bench)."

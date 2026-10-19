@@ -1,0 +1,2 @@
+libs = ["eio 1.6", "eio_main 1.6"]
+notes = "Eio_main.run (eio_posix backend on macOS, one domain). A is Eio's main fiber; B is Fiber.fork'ed into a Switch.run whose end joins it. Channels are Eio.Stream.create 0 (rendezvous), add/take. The posix scheduler polls for I/O (poll with a zero timeout) each time its run queue comes round, and with only two fibers alternating that is about once per handoff, so the row is dominated by that syscall and swings with machine load, like Python's asyncio."

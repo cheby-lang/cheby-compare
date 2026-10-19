@@ -1,0 +1,1 @@
+notes = "Shape B: the generic Hashtbl from key to node, created with capacity slots, plus a circular doubly linked list of records with mutable prev/next fields around a sentinel node (no option boxes, so relinking allocates nothing); an evicted node is reused for the insert."

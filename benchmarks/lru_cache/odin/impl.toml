@@ -1,0 +1,1 @@
+notes = "Shape B: map[int]int from key to slot plus a [dynamic]Node doubly linked by index; map and node array reserve capacity up front."

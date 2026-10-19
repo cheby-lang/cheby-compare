@@ -1,0 +1,2 @@
+libs = []
+notes = "The three loops are tail-recursive functions; float(N) is computed once and passed down, ci is computed inside the row loop so N = 0 never divides by zero."

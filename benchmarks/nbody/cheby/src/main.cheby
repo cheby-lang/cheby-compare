@@ -1,0 +1,194 @@
+//! n-body: five bodies of the outer solar system under gravity.
+//!
+//! The bodies are a list of records. Each step builds a new list: every
+//! pair of bodies pulls on each other's velocity, then every body moves.
+//! The number of steps is the first program argument, and `main` prints
+//! the total energy before and after, as round(e * 10^9).
+
+import std::env
+import std::float
+import std::int
+import std::io
+import std::list
+
+const pi: Float = 3.141592653589793
+
+const solar_mass: Float = 4.0 * pi * pi
+
+const days_per_year: Float = 365.24
+
+/// The length of one step.
+const dt: Float = 0.01
+
+/// A body: its position, its velocity and its mass.
+type Body {
+  x: Float,
+  y: Float,
+  z: Float,
+  vx: Float,
+  vy: Float,
+  vz: Float,
+  mass: Float,
+}
+
+fn main() {
+  let assert [arg, ..] = env::args()
+  let assert Ok(steps) = int::parse(arg)
+  let start = offset_momentum(initial_bodies())
+  io::println(int::show(scaled(energy(start))))
+  fn run(remaining, bodies) {
+    case remaining {
+      0 => bodies
+      _ => run(remaining - 1, advance(bodies))
+    }
+  }
+  io::println(int::show(scaled(energy(run(steps, start)))))
+}
+
+/// A planet from its position, its velocity in units per day and its mass
+/// in solar masses.
+fn planet(
+  x: Float,
+  y: Float,
+  z: Float,
+  vx: Float,
+  vy: Float,
+  vz: Float,
+  mass: Float,
+) -> Body {
+  Body {
+    x: x,
+    y: y,
+    z: z,
+    vx: vx * days_per_year,
+    vy: vy * days_per_year,
+    vz: vz * days_per_year,
+    mass: mass * solar_mass,
+  }
+}
+
+/// The Sun, Jupiter, Saturn, Uranus and Neptune, in that order.
+fn initial_bodies() -> List<Body> {
+  [
+    Body { x: 0.0, y: 0.0, z: 0.0, vx: 0.0, vy: 0.0, vz: 0.0, mass: solar_mass },
+    planet(
+      4.84143144246472090e+00,
+      -1.16032004402742839e+00,
+      -1.03622044471123109e-01,
+      1.66007664274403694e-03,
+      7.69901118419740425e-03,
+      -6.90460016972063023e-05,
+      9.54791938424326609e-04,
+    ),
+    planet(
+      8.34336671824457987e+00,
+      4.12479856412430479e+00,
+      -4.03523417114321381e-01,
+      -2.76742510726862411e-03,
+      4.99852801234917238e-03,
+      2.30417297573763929e-05,
+      2.85885980666130812e-04,
+    ),
+    planet(
+      1.28943695621391310e+01,
+      -1.51111514016986312e+01,
+      -2.23307578892655734e-01,
+      2.96460137564761618e-03,
+      2.37847173959480950e-03,
+      -2.96589568540237556e-05,
+      4.36624404335156298e-05,
+    ),
+    planet(
+      1.53796971148509165e+01,
+      -2.59193146099879641e+01,
+      1.79258772950371181e-01,
+      2.68067772490389322e-03,
+      1.62824170038242295e-03,
+      -9.51592254519715870e-05,
+      5.15138902046611451e-05,
+    ),
+  ]
+}
+
+/// Gives the Sun the velocity that makes the total momentum zero.
+fn offset_momentum(bodies: List<Body>) -> List<Body> {
+  let (px, py, pz) = list::fold(bodies, (0.0, 0.0, 0.0), fn((px, py, pz), b) {
+    (px + b.vx * b.mass, py + b.vy * b.mass, pz + b.vz * b.mass)
+  })
+  let assert [sun, ..planets] = bodies
+  let still = Body {
+    ..sun,
+    vx: -px / solar_mass,
+    vy: -py / solar_mass,
+    vz: -pz / solar_mass,
+  }
+  [still, ..planets]
+}
+
+/// The kinetic energy of every body minus the potential energy of every
+/// pair.
+fn energy(bodies: List<Body>) -> Float {
+  fn sum_from(rest: List<Body>, e: Float) -> Float {
+    case rest {
+      [] => e
+      [b, ..others] => {
+        let kinetic = e + 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz)
+        let total = list::fold(others, kinetic, fn(acc, o) {
+          let dx = b.x - o.x
+          let dy = b.y - o.y
+          let dz = b.z - o.z
+          acc - b.mass * o.mass / float::sqrt(dx * dx + dy * dy + dz * dz)
+        })
+        sum_from(others, total)
+      }
+    }
+  }
+  sum_from(bodies, 0.0)
+}
+
+/// One step: every pair pulls on each other, then every body moves.
+fn advance(bodies: List<Body>) -> List<Body> {
+  bodies |> interact |> list::map(_, drift)
+}
+
+/// Applies the pull of every pair `(i, j)` with `i < j`, in order: the
+/// first body against each later one, then the rest the same way.
+fn interact(bodies: List<Body>) -> List<Body> {
+  case bodies {
+    [] => []
+    [first, ..rest] => {
+      let (pulled, others) = list::fold(rest, (first, []), fn((a, done), b) {
+        let (a2, b2) = pull(a, b)
+        (a2, list::push(done, b2))
+      })
+      [pulled, ..interact(others)]
+    }
+  }
+}
+
+/// The velocities of `a` and `b` after they pull on each other for one
+/// step.
+fn pull(a: Body, b: Body) -> (Body, Body) {
+  let dx = a.x - b.x
+  let dy = a.y - b.y
+  let dz = a.z - b.z
+  let d2 = dx * dx + dy * dy + dz * dz
+  let mag = dt / (d2 * float::sqrt(d2))
+  let a_mag = a.mass * mag
+  let b_mag = b.mass * mag
+  (
+    Body { ..a, vx: a.vx - dx * b_mag, vy: a.vy - dy * b_mag, vz: a.vz - dz * b_mag },
+    Body { ..b, vx: b.vx + dx * a_mag, vy: b.vy + dy * a_mag, vz: b.vz + dz * a_mag },
+  )
+}
+
+/// Moves `b` along its velocity for one step.
+fn drift(b: Body) -> Body {
+  Body { ..b, x: b.x + dt * b.vx, y: b.y + dt * b.vy, z: b.z + dt * b.vz }
+}
+
+/// round(e * 10^9), halves away from zero.
+fn scaled(e: Float) -> Int {
+  let assert Ok(n) = float::round(e * 1.0e9)
+  n
+}

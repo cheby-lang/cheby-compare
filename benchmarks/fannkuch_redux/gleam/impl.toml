@@ -1,0 +1,2 @@
+libs = []
+notes = "Rebuild shape on lists (gleam_stdlib has no indexed sequence): a flip is list.split + list.append(list.reverse(front), back), a rotation splits perm1 at r + 1. count is a list updated by index with small recursive helpers."

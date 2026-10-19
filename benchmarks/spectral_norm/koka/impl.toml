@@ -1,0 +1,1 @@
+notes = "list<float64> vectors with the SPEC's sequential formulation: map over an index list built once, tail-recursive dot product per element. Integer (arbitrary-precision int) denominator."

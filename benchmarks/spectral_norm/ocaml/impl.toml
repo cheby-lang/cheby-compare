@@ -1,0 +1,1 @@
+notes = "float array with for loops; entry is a helper marked [@inline], since ocamlopt without flambda otherwise calls it and boxes its float result (2.1x slower)"

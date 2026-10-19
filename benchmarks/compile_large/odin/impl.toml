@@ -1,0 +1,2 @@
+libs = []
+notes = "One package per module (m0000/m0000.odin), module i imports \"../m<i-1>\" by relative path. Every item except base and entry is @(private) (package-private), matching the module-private reading of the Rust and Cheby references. Shape is a union of four structs matched with a type switch."

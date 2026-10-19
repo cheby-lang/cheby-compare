@@ -1,0 +1,2 @@
+libs = []
+notes = "Vectors are lists, walked with tail-recursive sums; A(i, j) is a helper function (Gleam cannot ask for inlining; writing the formula out in the loops measured only about 10% faster at n = 2000). sqrt is math:sqrt through @external, since gleam/float square_root is math:pow(x, 0.5)."

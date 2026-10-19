@@ -1,0 +1,1 @@
+notes = "type tree = Empty | Node of tree * tree. Every node, leaves included, is a fresh heap block: leaves are built from Sys.opaque_identity Empty, because ocamlopt makes Node (Empty, Empty) one shared static constant (the BEAM languages export their make function for the same reason)."

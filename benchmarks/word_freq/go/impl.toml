@@ -1,0 +1,1 @@
+notes = "strings.FieldsSeq (the iterator form of strings.Fields, the same splitter) counts while splitting into map[string]int; keys are substrings of one string copy of the file. slices.SortFunc with cmp.Compare on counts and strings.Compare (byte order) on words."

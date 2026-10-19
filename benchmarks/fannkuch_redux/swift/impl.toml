@@ -1,0 +1,2 @@
+libs = []
+notes = "The flip is a plain swapAt loop over perm[0...k]. The library call perm[0...k].reverse() on an ArraySlice gave the same output but ran about 8 times slower at N = 10 under -O (1.27 s against 0.16 s), because swiftc 6.4 does not optimise the in-place slice reversal into a plain loop."

@@ -1,0 +1,170 @@
+//! JSON round trip: parses an array of records, transforms it and writes it back as JSON.
+//!
+//! The arguments are the path of the input file and the number of
+//! repetitions. Each repetition decodes the whole file into records,
+//! adds up a few aggregates, keeps the active records with a changed
+//! score and a new total, and writes them as compact JSON. Every
+//! repetition counts the output's bytes, and the last one also hashes
+//! them with FNV-1a, since every repetition writes the same text.
+
+import std::env
+import std::bytes
+import std::int
+import std::io
+import std::json
+import std::json::decode
+import std::list
+
+const fnv_offset: Int = 2166136261
+const fnv_prime: Int = 16777619
+
+type Address { street: String, city: String, zip: Int }
+
+type Entry { day: Int, amount: Int }
+
+type Record {
+  id: Int,
+  name: String,
+  active: Bool,
+  score: Int,
+  tags: List<String>,
+  address: Address,
+  history: List<Entry>,
+}
+
+/// The aggregates over every repetition so far, and the hash of the last output.
+type Totals {
+  records: Int,
+  active: Int,
+  score_sum: Int,
+  tags: Int,
+  history: Int,
+  amount_sum: Int,
+  output_bytes: Int,
+  hash: Int,
+}
+
+fn main() {
+  let assert [path, reps_text, ..] = env::args()
+  let assert Ok(reps) = int::parse(reps_text)
+  let assert Ok(text) = io::read_file(path)
+  let start = Totals {
+    records: 0,
+    active: 0,
+    score_sum: 0,
+    tags: 0,
+    history: 0,
+    amount_sum: 0,
+    output_bytes: 0,
+    hash: fnv_offset,
+  }
+  let totals = repeat(text, reps, start)
+  io::println("records {totals.records}")
+  io::println("active {totals.active}")
+  io::println("score_sum {totals.score_sum}")
+  io::println("tags {totals.tags}")
+  io::println("history {totals.history}")
+  io::println("amount_sum {totals.amount_sum}")
+  io::println("output_bytes {totals.output_bytes}")
+  io::println("output_fnv1a {totals.hash}")
+}
+
+/// Runs `reps` round trips of `text`, one after another.
+fn repeat(text: String, reps: Int, totals: Totals) -> Totals {
+  case reps {
+    0 => totals
+    _ => repeat(text, reps - 1, round_trip(text, reps == 1, totals))
+  }
+}
+
+/// One round trip: decode, aggregate, transform and encode. The `last` one also hashes.
+fn round_trip(text: String, last: Bool, totals: Totals) -> Totals {
+  let assert Ok(records) = json::parse(text, decode::list(record_decoder()))
+  let (counted, kept) = list::fold(records, (totals, []), visit)
+  let output = bytes::from_string(json::to_string(json::Array(kept)))
+  let hash = case last {
+    True => bytes::fold(output, fnv_offset, fnv1a_step)
+    False => counted.hash
+  }
+  Totals { ..counted, output_bytes: counted.output_bytes + bytes::length(output), hash }
+}
+
+/// Adds one record to the aggregates, and keeps it, transformed, when it is active.
+fn visit(state: (Totals, List<json::Value>), record: Record) -> (Totals, List<json::Value>) {
+  let (totals, kept) = state
+  let total = history_total(record.history)
+  let counted = Totals {
+    ..totals,
+    records: totals.records + 1,
+    score_sum: totals.score_sum + record.score,
+    tags: totals.tags + list::length(record.tags),
+    history: totals.history + list::length(record.history),
+    amount_sum: totals.amount_sum + total,
+  }
+  case record.active {
+    True => {
+      let transformed = encode_kept(record, total)
+      (Totals { ..counted, active: counted.active + 1 }, list::push(kept, transformed))
+    }
+    False => (counted, kept)
+  }
+}
+
+/// The sum of the amounts of `history`.
+fn history_total(history: List<Entry>) -> Int {
+  list::fold(history, 0, fn(sum, entry) { sum + entry.amount })
+}
+
+/// One step of FNV-1a over 32 bits. The product stays below 2^57, so it fits in an `Int`.
+fn fnv1a_step(hash: Int, byte: U8) -> Int {
+  ((hash ^ int::from_u8(byte)) * fnv_prime) & 0xFFFF_FFFF
+}
+
+/// A kept record as written: `active` is gone, `score` gains 100 per tag, `total` is added.
+fn encode_kept(record: Record, total: Int) -> json::Value {
+  json::Object([
+    ("id", json::Int(record.id)),
+    ("name", json::String(record.name)),
+    ("score", json::Int(record.score + 100 * list::length(record.tags))),
+    ("tags", json::array(record.tags, json::String)),
+    ("address", encode_address(record.address)),
+    ("history", json::array(record.history, encode_entry)),
+    ("total", json::Int(total)),
+  ])
+}
+
+fn encode_address(address: Address) -> json::Value {
+  json::Object([
+    ("street", json::String(address.street)),
+    ("city", json::String(address.city)),
+    ("zip", json::Int(address.zip)),
+  ])
+}
+
+fn encode_entry(entry: Entry) -> json::Value {
+  json::Object([("day", json::Int(entry.day)), ("amount", json::Int(entry.amount))])
+}
+
+fn record_decoder() -> decode::Decoder<Record> {
+  use id <- decode::field("id", decode::int())
+  use name <- decode::field("name", decode::string())
+  use active <- decode::field("active", decode::bool())
+  use score <- decode::field("score", decode::int())
+  use tags <- decode::field("tags", decode::list(decode::string()))
+  use address <- decode::field("address", address_decoder())
+  use history <- decode::field("history", decode::list(entry_decoder()))
+  decode::success(Record { id, name, active, score, tags, address, history })
+}
+
+fn address_decoder() -> decode::Decoder<Address> {
+  use street <- decode::field("street", decode::string())
+  use city <- decode::field("city", decode::string())
+  use zip <- decode::field("zip", decode::int())
+  decode::success(Address { street, city, zip })
+}
+
+fn entry_decoder() -> decode::Decoder<Entry> {
+  use day <- decode::field("day", decode::int())
+  use amount <- decode::field("amount", decode::int())
+  decode::success(Entry { day, amount })
+}

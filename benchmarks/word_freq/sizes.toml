@@ -1,0 +1,3 @@
+zero = ["{data}/words-0.txt"]
+test = ["{data}/words-test.txt"]
+bench = ["{data}/words-bench.txt"]

@@ -1,0 +1,1 @@
+notes = "String#split (whitespace), Enumerable#tally into a Hash, sort_by { [-count, word] }."

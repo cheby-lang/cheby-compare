@@ -1,0 +1,32 @@
+id = "clojure-coreasync"
+name = "Clojure (core.async)"
+kind = "jvm"
+version = '''clojure -Srepro -Sdeps '{:deps {org.clojure/core.async {:mvn/version "1.9.865"}}}' -M -e '(let [p (java.util.Properties.)] (with-open [r (clojure.java.io/reader (clojure.java.io/resource "META-INF/maven/org.clojure/core.async/pom.properties"))] (.load p r)) (println "Clojure" (clojure-version) "+ core.async" (.getProperty p "version") "on OpenJDK" (System/getProperty "java.version")))' '''
+comment = ";"
+extensions = [".clj"]
+# The library variant of the `clojure` row, for ping_pong, spawn_many and prime_sieve only
+# (CONVENTIONS, "Library variants"). Same layout, build, clean and run as langs/clojure.toml (see
+# its comments and langs/clojure.md); only the deps.edn adds org.clojure/core.async.
+#
+# The Homebrew JDK is keg-only: put its bin first on PATH. CLJ_CACHE holds the CLI's classpath
+# cache, outside the source tree. CLJ_AOT_LIBS points at core.async (and the tools.analyzer
+# namespaces its `go` macro uses), AOT-compiled once by setup/clojure-coreasync.sh, so a build
+# compiles only the program's own namespaces.
+env = { PATH = "/opt/homebrew/opt/openjdk/bin:$PATH", CLJ_CACHE = "{root}/build/clojure-cache", CLJ_AOT_LIBS = "{root}/build/clojure-lib/core.async-1.9.865" }
+
+# One layout for every benchmark: deps.edn (Clojure 1.12.6 and core.async 1.9.865) and
+# src/main.clj, namespace `main` with (:gen-class) and -main.
+#
+# build (no daemon, every step a fresh process): the clojure CLI resolves deps.edn into the jar
+# classpath (warm cache from setup, offline), {build}/run.args gets the java @argfile for `run`,
+# and one cold JVM AOT-compiles namespace `main` with clojure.lang.Compile. Default compiler
+# options (no direct linking).
+build = '''mkdir -p {build}/classes && deps=$(cat deps.edn) && jars=$(cd {build} && clojure -Srepro -Sdeps "$deps" -Spath | tr : '\n' | grep '^/' | paste -sd: -) && test -n "$jars" && cp="${CLJ_AOT_LIBS:+$CLJ_AOT_LIBS:}$jars" && printf -- '-cp %s\n' "{build}/classes:$cp" > {build}/run.args && java -Dclojure.compile.path={build}/classes -cp "src:{build}/classes:$cp" clojure.lang.Compile main'''
+# Removes only this program's classes and argfile; ~/.m2, the classpath cache and
+# build/clojure-lib/ (AOT-compiled core.async) are kept.
+clean = "rm -rf {build}/classes {build}/run.args"
+# Deployable form: plain `java` on the class directory plus the AOT library classes and jars,
+# default flags (go blocks on core.async 1.9's default :mixed executor, a daemon cached
+# thread pool; no executor-factory, pool-size or other system property).
+run = "java @{build}/run.args main {args}"
+artifact = "{build}/classes"

@@ -1,0 +1,1 @@
+notes = "Shape C: entries a map key -> {value, tick}, by_tick a gb_trees, evict with gb_trees:take_smallest, checksum with a gb_trees iterator. Most of the time goes to the persistent gb_trees delete and insert churn (about 2 us/op)."

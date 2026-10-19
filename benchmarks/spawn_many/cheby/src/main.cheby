@@ -1,0 +1,79 @@
+//! spawn_many: spawns `n` short fibers in scopes of `batch` fibers each,
+//! joins every scope's fibers and prints the sum of their values.
+
+import std::env
+import std::fiber
+import std::int
+import std::io
+import std::list
+
+/// How many fibers one scope holds.
+const batch: Int = 1_000
+
+/// How many generator steps one fiber takes.
+const rounds: Int = 10
+
+/// The MINSTD modulus, 2^31 - 1.
+const modulus: Int = 2_147_483_647
+
+/// The MINSTD multiplier.
+const multiplier: Int = 48_271
+
+fn main() {
+  let assert [arg, ..] = env::args()
+  let assert Ok(n) = int::parse(arg)
+  fn run(start, total) {
+    case {
+      start >= n => total
+      _ => {
+        let assert Ok(sum) = spawn_and_join(start, int::min(batch, n - start))
+        run(start + batch, total + sum)
+      }
+    }
+  }
+  let sum = run(0, 0)
+  io::println("tasks: {n}")
+  io::println("sum: {sum}")
+}
+
+/// Spawns one fiber for each index from `start` to `start + count - 1`
+/// into a new scope, joins them all and returns the sum of their values.
+/// The result is an `Err` only if a fiber panics.
+fn spawn_and_join(start: Int, count: Int) -> Result<Int, fiber::Panic> {
+  use scope <- fiber::scope()
+  fn spawn_all(i, fibers) {
+    case {
+      i == count => fibers
+      _ => {
+        let index = start + i
+        spawn_all(i + 1, [fiber::spawn(scope, fn() { work(index) }), ..fibers])
+      }
+    }
+  }
+  spawn_all(0, [])
+  |> list::fold(_, 0, fn(acc, child) { acc + fiber::join(child) })
+}
+
+/// The value of the fiber with this index: `rounds` steps of the MINSTD
+/// generator, starting from `index + 1`.
+fn work(index: Int) -> Int {
+  fn step(x, left) {
+    case left {
+      0 => x
+      _ => step(x * multiplier % modulus, left - 1)
+    }
+  }
+  step(index + 1, rounds)
+}
+
+test "the first values follow the MINSTD generator" {
+  assert work(0) == 1_596_680_831
+}
+
+test "one scope's sum is the sum of its fibers' values" {
+  assert spawn_and_join(0, 3) == Ok(work(0) + work(1) + work(2))
+}
+
+test "an empty scope sums to zero" {
+  assert spawn_and_join(5, 0) == Ok(0)
+}

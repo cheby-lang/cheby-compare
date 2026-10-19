@@ -1,0 +1,28 @@
+id = "cpp"
+name = "C++"
+kind = "aot"
+version = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ --version"
+comment = "//"
+extensions = [".cpp", ".hpp", ".h"]
+
+# The compiler is the real Apple clang 21 of the Xcode toolchain, not /usr/bin/clang++: that one
+# is an xcrun trampoline that adds about 6 ms to every compiler start (SPEC hello_world, "No shims
+# or proxies"). Called directly, clang needs SDKROOT to find libc++'s headers and the macOS SDK.
+# CXX and CXXFLAGS repeat the compiler and the release flags for make's implicit rules
+# (compile_large's generated Makefile); `build` below spells them out.
+env = { SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk", CXX = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++", CXXFLAGS = "-std=c++23 -O3" }
+
+# Every implementation is one main.cpp. Release flags: C++23, -O3 (CMake's Release default,
+# CONVENTIONS "Optimised builds"), no -march=native, no LTO, no -ffast-math.
+# One cold compiler process compiles and links it into {build}/main (the runner creates {build}).
+# No ccache/sccache, no precompiled header, no daemon: after `clean` the next build compiles and
+# links the whole program again. libc++ is a prebuilt system dylib and nlohmann/json is
+# header-only, so there are no third-party build products to keep.
+#
+# `build` has no shell syntax ($VAR, globs, &&) on purpose: hyperfine 2 runs the timed command
+# without a shell by default. An impl.toml that needs an extra flag overrides the whole line, e.g.
+#   build = "<same compiler> -std=c++23 -O3 -ffp-contract=off -o {build}/main main.cpp"
+build = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++23 -O3 -o {build}/main main.cpp"
+clean = "rm -f {build}/main"
+run = "{build}/main {args}"
+artifact = "{build}/main"

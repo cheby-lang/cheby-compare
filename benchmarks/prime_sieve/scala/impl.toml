@@ -1,0 +1,2 @@
+libs = []
+notes = "One virtual thread per stage (Thread.ofVirtual().start), SynchronousQueue[Long] between stages; the main (platform) thread receives the primes, as in the Java row. Shutdown option 1: virtual threads are daemons, so returning from main ends the JVM with the stages still blocked."

@@ -1,0 +1,1 @@
+notes = "One systhread per task: Thread.create (threads.posix), a per-batch result array where task j writes slot j, Thread.join on each, then the array is summed. OCaml's 63-bit int holds every value exactly (x * 48271 < 2^47, sum < 2^53)."

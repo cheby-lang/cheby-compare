@@ -1,0 +1,31 @@
+id = "ocaml"
+name = "OCaml"
+kind = "aot"
+version = '''echo "OCaml $(ocamlopt -version), dune $(dune --version)"'''
+comment = "(*"
+extensions = [".ml", ".mli"]
+# The compiler is Homebrew's (/opt/homebrew/bin/ocamlopt, OCaml 5.5, no flambda). dune and the
+# libraries (yojson; eio for ocaml-eio) live in the opam switch that setup/ocaml.sh makes on top
+# of that compiler, through ocaml-system. Its bin/ goes first on PATH for dune, and
+# OPAM_SWITCH_PREFIX is what `opam env` sets and what dune reads to find the switch's libraries.
+# No `opam exec` proxy sits between the runner and dune.
+env = { OPAM_SWITCH_PREFIX = "$HOME/.cache/cheby-compare/opam/cheby-compare", PATH = "$HOME/.cache/cheby-compare/opam/cheby-compare/bin:$PATH" }
+
+# One layout for every benchmark: benchmarks/<bench>/ocaml/ is a dune project with dune-project
+# `(lang dune 3.0)`, a `dune` file declaring `(executable (name main))` (plus `(libraries ...)`
+# when needed), main.ml and any other modules (langs/ocaml.md).
+#
+# `dune build --profile release` is dune's release build: ocamlopt with dune's release flags
+# (-g, warnings not fatal). OCaml has no -O levels without flambda, and this compiler has none.
+# --root . keeps dune from looking for a workspace above the implementation directory, and
+# --build-dir puts _build under {build}, so nothing lands in the source tree.
+#
+# Cold compile: --cache disabled turns off dune's shared build cache (~/.cache/dune), which
+# would otherwise turn a build after `clean` into a cache hit. dune has no daemon outside
+# `dune build --watch`. `clean` removes this program's _build; the standard library and the
+# switch's libraries stay compiled in their install dirs, so the timed build compiles and links
+# only this program.
+build = "dune build --root . --build-dir {build}/_build --profile release --cache disabled"
+clean = "rm -rf {build}/_build"
+run = "{build}/_build/default/main.exe {args}"
+artifact = "{build}/_build/default/main.exe"

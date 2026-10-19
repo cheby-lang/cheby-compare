@@ -1,0 +1,1 @@
+notes = "Shape A: scala.collection.mutable.LinkedHashMap[Long, Long]; a hit is remove (the one lookup) then update, which moves the key to the end; evict head"

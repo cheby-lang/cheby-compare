@@ -1,0 +1,2 @@
+libs = []
+notes = "One std.Thread.spawn per index (default 16 MiB stack), joined with thread.join(); each thread writes only its own slot of a per-batch result slice, summed after the batch's joins."

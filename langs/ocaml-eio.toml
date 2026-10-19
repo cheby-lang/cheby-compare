@@ -1,0 +1,21 @@
+id = "ocaml-eio"
+name = "OCaml (Eio)"
+kind = "aot"
+version = '''echo "OCaml $(ocamlopt -version), dune $(dune --version), eio_main $(ls "$OPAM_SWITCH_PREFIX/.opam-switch/packages" | sed -n 's/^eio_main\.//p')"'''
+comment = "(*"
+extensions = [".ml", ".mli"]
+# The library variant of the `ocaml` row, for ping_pong, spawn_many and prime_sieve only
+# (CONVENTIONS, "Library variants"). Same compiler, layout, build, clean and run as
+# langs/ocaml.toml (see its comments and langs/ocaml.md); only the `dune` file adds
+# `(libraries eio_main)`. Eio 1.6 with eio_main, installed into the opam switch by
+# setup/ocaml.sh (setup/ocaml-eio.sh calls it). On macOS Eio_main picks the eio_posix backend.
+# Programs run in one domain under `Eio_main.run`, as Eio fibers; no Domain_manager.
+env = { OPAM_SWITCH_PREFIX = "$HOME/.cache/cheby-compare/opam/cheby-compare", PATH = "$HOME/.cache/cheby-compare/opam/cheby-compare/bin:$PATH" }
+
+# Cold compile: --cache disabled turns off dune's shared build cache; dune runs no daemon outside
+# --watch. `clean` removes this program's _build only; eio and its dependencies stay compiled in
+# the switch, so the timed build compiles and links only this program.
+build = "dune build --root . --build-dir {build}/_build --profile release --cache disabled"
+clean = "rm -rf {build}/_build"
+run = "{build}/_build/default/main.exe {args}"
+artifact = "{build}/_build/default/main.exe"

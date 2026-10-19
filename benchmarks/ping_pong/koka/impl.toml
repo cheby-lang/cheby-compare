@@ -1,0 +1,4 @@
+libs = []
+notes = "std/async ships with the installed Koka (precompiled, linked with libuv), so it counts as the standard library. A is a strand of `interleaved(a, b)` inside `async`, B the other strand; `interleaved` returns when both end (the join). Channels: std/async `channel()`, `emit` (never blocks, unbounded) and `receive`; the protocol keeps at most one message in flight. Strands are cooperatively scheduled on one thread."
+comparable = false
+comparable_note = "Koka: cooperative single-threaded std/async (no dynamic spawn); measured but not comparable, and left out of the geometric means"

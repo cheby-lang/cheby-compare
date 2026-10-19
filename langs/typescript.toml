@@ -1,0 +1,26 @@
+id = "typescript"
+name = "TypeScript"
+kind = "jsvm"
+version = "printf 'tsc %s, node %s\\n' \"$(/opt/homebrew/bin/tsc --version | cut -d' ' -f2)\" \"$(/Users/xikxp1/.vite-plus/js_runtime/node/24.22.0/bin/node --version)\""
+comment = "//"
+extensions = [".ts"]
+env = {}
+
+# Every implementation is a small Node project: package.json ({"type": "module"}), tsconfig.json
+# (ES2024, NodeNext, strict) and main.ts plus any other modules. setup/typescript.sh makes the
+# shared build/typescript/: @types/node, which tsconfig.json reaches through typeRoots, and the
+# package.json that makes node load each emitted {build}/*.js as an ES module.
+#
+# Compile: one cold run of tsc 7.0, the native (Go) compiler, which type-checks and emits
+# {build}/main.js. /opt/homebrew/bin/tsc links straight to the executable; there is no node
+# launcher, no build server, no --watch, no --build mode and no .tsbuildinfo (incremental is off),
+# so after `clean` every build checks and emits the whole program again. The type declarations
+# are only read, never compiled into anything, so there is nothing of theirs to keep.
+# No shell syntax in `build`: hyperfine 2 times it without a shell.
+build = "/opt/homebrew/bin/tsc -p . --outDir {build}"
+clean = "find {build} -name '*.js' -type f -delete"
+
+# Run: the real node 24 binary by absolute path (deployable form, no shims): `node` on PATH is a
+# vite-plus shim and /opt/homebrew/bin/node is node 26. Default flags.
+run = "/Users/xikxp1/.vite-plus/js_runtime/node/24.22.0/bin/node {build}/main.js {args}"
+artifact = "{build}/main.js"

@@ -1,0 +1,2 @@
+libs = []
+notes = "readFileSync(path, \"latin1\"), text.split(/\\s+/) skipping empty parts, Map<string, number>, Array.prototype.sort with a comparator that compares words with < (ordinal), not localeCompare."

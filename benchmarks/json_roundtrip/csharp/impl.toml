@@ -1,0 +1,2 @@
+libs = []
+notes = "System.Text.Json from the base class library (no package): reflection-based JsonSerializer.Deserialize<List<Record>> into positional records and SerializeToUtf8Bytes of new output records, with JsonSerializerDefaults.Web for the camelCase keys. Output records share tags, address and history with the parsed records; records serialize in declaration order."

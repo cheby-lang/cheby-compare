@@ -1,0 +1,2 @@
+libs = []
+notes = "Generator and filters are async functions on the hand-written rendezvous Channel<T> of ping_pong. Shut down with SPEC option 1: main prints and returns; the stages stay blocked on promises that never settle, which do not keep node alive (no process.exit)."

@@ -1,0 +1,26 @@
+id = "rust-tokio"
+name = "Rust (tokio)"
+kind = "aot"
+version = '''echo "$(rustc --version) + tokio $(awk '/^name = "tokio"$/ { getline; gsub(/version = |"/, ""); print; exit }' {root}/benchmarks/ping_pong/rust-tokio/Cargo.lock)"'''
+comment = "//"
+extensions = [".rs"]
+# The real toolchain, not the rustup proxies in ~/.cargo/bin, which add 10-30% to a small
+# build (hello_world/SPEC.md).
+env = { PATH = "$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH" }
+
+# The library variant of the `rust` row, for ping_pong, spawn_many and prime_sieve only
+# (CONVENTIONS, "Library variants"); the guide is langs/rust-tokio.md. Same compiler, layout,
+# clean and run as langs/rust.toml, and `build` adds only --offline --locked: every crate is
+# named `main`, and its Cargo.toml adds tokio (pinned by the Cargo.lock next to it) with the
+# features it needs. Programs use #[tokio::main], the multi-threaded runtime with its default
+# worker count (one per core).
+#
+# tokio is downloaded by setup/rust-tokio.sh (cargo fetch), so `build` runs offline. `--locked`
+# makes a build fail rather than re-resolve and rewrite Cargo.lock, so the tokio that is built is
+# the one the lockfiles pin (setup checks that all three pin the same version). The target
+# directory is per implementation, so `clean` removes only this crate's outputs and keeps tokio
+# and its dependencies compiled: the timed build compiles and links only the program.
+build = "cargo build --release --quiet --offline --locked --target-dir {build}"
+clean = "rm -rf {build}/release/main {build}/release/main.d {build}/release/deps/main-* {build}/release/.fingerprint/main-* {build}/release/incremental/main-*"
+run = "{build}/release/main {args}"
+artifact = "{build}/release/main"

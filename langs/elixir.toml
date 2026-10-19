@@ -1,0 +1,34 @@
+id = "elixir"
+name = "Elixir"
+kind = "beam"
+version = '''echo "Elixir $(elixir --short-version), Erlang/OTP $(erl -noshell -eval 'io:put_chars(erlang:system_info(otp_release)), halt(0).')"'''
+comment = "#"
+extensions = [".ex", ".exs"]
+# MIX_ENV=prod: the release build.
+# HEX_OFFLINE=1: a build never touches the network (setup/elixir.sh fetches any hex deps).
+# ERL_CRASH_DUMP_SECONDS=0: a crashing program writes no erl_crash.dump into the source dir.
+env = { MIX_ENV = "prod", HEX_OFFLINE = "1", ERL_CRASH_DUMP_SECONDS = "0" }
+
+# One layout for every benchmark: benchmarks/<bench>/elixir/ is a Mix project whose app is
+# `main` (mix.exs, lib/main.ex defining `Main.main/0`, plus any other modules in lib/), see
+# langs/elixir.md.
+#
+# `build` is one cold `mix compile` process; Mix has no daemon or compile server. It compiles
+# the app and consolidates protocols, as a release build does. Elixir 1.20 writes the
+# consolidated protocols into the app's own _build/prod/lib/main/consolidated.
+# MIX_BUILD_ROOT and MIX_DEPS_PATH move Mix's _build/ and deps/ out of the source tree into
+# {build}, so nothing is staged or copied. They sit in `build`, not in `env`, because the runner
+# substitutes {build} in `env` with the implementation's build dir, while compile_large builds
+# each size into its own dir.
+build = "MIX_BUILD_ROOT={build}/_build MIX_DEPS_PATH={build}/deps mix compile"
+# Removes only this program's compiled output and its consolidated protocols. Compiled hex deps
+# stay in _build/prod/lib/<dep> and their sources in {build}/deps.
+clean = "rm -rf {build}/_build/prod/lib/main"
+# Deployable form: erl on the compiled beams plus Elixir's own ebin, default boot script and
+# emulator flags; call the entry, then halt(0) at once (hello_world SPEC, BEAM notes). Arguments
+# arrive after -extra; read them with :init.get_plain_arguments() (langs/elixir.md).
+# On OTP 29, `-pa A B C` puts C first on the code path, so the consolidated protocols come LAST
+# here to win over the unconsolidated ones in Elixir's ebin (setup/elixir.sh checks this order).
+run = "erl -noshell -pa /opt/homebrew/opt/elixir/lib/elixir/lib/elixir/ebin {build}/_build/prod/lib/*/ebin {build}/_build/prod/lib/main/consolidated -eval \"'Elixir.Main':main(), halt(0).\" -extra {args}"
+# The program's own beams. Elixir's stdlib beams ship next to them, as OTP does for Erlang.
+artifact = "{build}/_build/prod/lib/main/ebin"

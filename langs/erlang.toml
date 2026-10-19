@@ -1,0 +1,22 @@
+id = "erlang"
+name = "Erlang"
+kind = "beam"
+version = "erl -noshell -eval 'V = file:read_file(filename:join([code:root_dir(), \"releases\", erlang:system_info(otp_release), \"OTP_VERSION\"])), {ok, B} = V, io:format(\"Erlang/OTP ~s (erts ~s)~n\", [string:trim(B), erlang:system_info(version)]), halt(0).'"
+comment = "%"
+extensions = [".erl", ".hrl"]
+# ERLC_USE_SERVER=false: every build is a cold erlc process, never the erlc compile server.
+# ERL_CRASH_DUMP_SECONDS=0: a crashing program writes no erl_crash.dump into the source dir.
+env = { ERLC_USE_SERVER = "false", ERL_CRASH_DUMP_SECONDS = "0" }
+
+# One layout for every benchmark: the implementation directory holds main.erl (module `main`,
+# exporting main/0) plus any other modules, all compiled by one cold erlc into {build}/ebin.
+# erlc's default optimisation is the release default; +deterministic keeps beams reproducible.
+# OTP ships `json` (OTP 27+), so no benchmark needs a third-party library and `clean` has
+# nothing to keep beyond OTP itself.
+build = "mkdir -p {build}/ebin && erlc +deterministic -o {build}/ebin *.erl"
+clean = "rm -rf {build}/ebin"
+# Deployable form: erl on the compiled beams, default boot script and emulator flags; call the
+# entry, then halt(0) at once (hello_world SPEC, BEAM notes). Arguments arrive after -extra and
+# are read with init:get_plain_arguments().
+run = "erl -noshell -pa {build}/ebin -eval 'main:main(), halt(0).' -extra {args}"
+artifact = "{build}/ebin"

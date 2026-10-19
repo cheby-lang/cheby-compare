@@ -1,0 +1,14 @@
+id = "cheby"
+name = "Cheby"
+kind = "jit"                          # JIT only until M3: compile and run are one step
+version = "echo \"$({cheby} --version) ($(git -C \"$(dirname {cheby})/../..\" rev-parse --short HEAD 2>/dev/null || echo unknown))\""
+comment = "//"
+extensions = [".cheby"]
+env = {}
+
+# No separate build step: `cheby run` type-checks, JIT-compiles every function and runs `main`.
+# The runner estimates the compile part as the median run at size 0 (see CONVENTIONS.md).
+build = ""
+clean = ""
+run = "{cheby} run -- {args}"
+check = "{cheby} check"               # front-end time, reported next to the estimates

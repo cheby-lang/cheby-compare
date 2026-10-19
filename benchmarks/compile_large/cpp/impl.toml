@@ -1,0 +1,13 @@
+# compile_large is a generated Makefile project (SPEC "Parallelism"): one object file per module,
+# built with parallel make. The real GNU make of the Xcode toolchain, not the /usr/bin/make xcrun
+# trampoline. make's implicit variables CXX and CXXFLAGS come from langs/cpp.toml's env, so the
+# compiler and the release flags (-std=c++23 -O3) are the same as every other C++ build.
+# The job count is the SPEC's $(sysctl -n hw.ncpu), so it follows the measuring machine. hyperfine 2
+# runs `build` without a shell, so the command is wrapped in `sh -c '...'` (about 2 ms of sh
+# start-up); `exec` hands the process over to make.
+build = "sh -c 'exec /Applications/Xcode.app/Contents/Developer/usr/bin/make -j\"$(/usr/sbin/sysctl -n hw.ncpu)\" OUT={build}'"
+clean = "rm -rf {build}/*.o {build}/main"
+run = "{build}/main"
+artifact = "{build}/main"
+libs = []
+notes = "Generated Makefile, one object per module, built with `make -j$(sysctl -n hw.ncpu)` inside `sh -c` (hyperfine runs build without a shell). mNNNN.hpp declares base and entry in namespace mNNNN; everything else is in an anonymous namespace. Shape is a std::variant of four structs matched with std::visit and a plain per-module visitor struct with four operator() overloads (no template). No ccache, no PCH."

@@ -1,0 +1,96 @@
+//! Spectral norm: the benchmarks-game power method on the infinite
+//! matrix A(i, j) = 1 / ((i + j)(i + j + 1) / 2 + i + 1), cut to n by n.
+//!
+//! The vectors are immutable lists. Each output element is a dot
+//! product over the whole input vector, summed front to back by a
+//! recursive walk that carries the column index along.
+
+import std::env
+import std::float
+import std::int
+import std::io
+import std::list
+
+fn main() {
+  let assert [text] = env::args()
+  let assert Ok(n) = int::parse(text)
+  let (u, v) = power(list::repeat(1.0, n), 10)
+  io::println(int::show(norm(u, v)))
+}
+
+/// Returns A times `x`: element i is the sum of A(i, j) * x[j].
+fn times_a(x: List<Float>) -> List<Float> {
+  list::range(0, list::length(x))
+  |> list::map(_, fn(i) { row_sum(i, x, 0, 0.0) })
+}
+
+/// Adds A(i, j) * x[j] to `sum` for each remaining element x[j] of
+/// `rest`, front to back, where `j` is the index of the first one.
+/// A(i, j) = 1 / ((i + j)(i + j + 1) / 2 + i + 1) is written out here
+/// rather than in a helper: a helper returns a boxed `Float` (D-453),
+/// which made the program about 1.65x slower at n = 1000.
+fn row_sum(i: Int, rest: List<Float>, j: Int, sum: Float) -> Float {
+  case rest {
+    [] => sum
+    [xj, ..tail] => {
+      let ij = i + j
+      let a = 1.0 / float::from_int(ij * (ij + 1) / 2 + i + 1)
+      row_sum(i, tail, j + 1, sum + a * xj)
+    }
+  }
+}
+
+/// Returns A transposed times `x`: element i is the sum of
+/// A(j, i) * x[j].
+fn times_at(x: List<Float>) -> List<Float> {
+  list::range(0, list::length(x))
+  |> list::map(_, fn(i) { column_sum(i, x, 0, 0.0) })
+}
+
+/// Adds A(j, i) * x[j] to `sum` for each remaining element x[j] of
+/// `rest`, front to back, where `j` is the index of the first one.
+/// A(j, i) is written out for the same reason as in `row_sum`.
+fn column_sum(i: Int, rest: List<Float>, j: Int, sum: Float) -> Float {
+  case rest {
+    [] => sum
+    [xj, ..tail] => {
+      let ij = i + j
+      let a = 1.0 / float::from_int(ij * (ij + 1) / 2 + j + 1)
+      column_sum(i, tail, j + 1, sum + a * xj)
+    }
+  }
+}
+
+/// Returns A transposed times A times `x`.
+fn times_ata(x: List<Float>) -> List<Float> {
+  times_at(times_a(x))
+}
+
+/// Runs `steps` rounds of v = AtA(u), u = AtA(v) and returns the last
+/// u and v. `steps` is at least 1.
+fn power(u: List<Float>, steps: Int) -> (List<Float>, List<Float>) {
+  let v = times_ata(u)
+  let next = times_ata(v)
+  case steps {
+    1 => (next, v)
+    _ => power(next, steps - 1)
+  }
+}
+
+/// Returns the sum of x[i] * y[i], front to back.
+fn dot(x: List<Float>, y: List<Float>) -> Float {
+  list::zip(x, y) |> list::fold(_, 0.0, fn(sum, (a, b)) { sum + a * b })
+}
+
+/// Returns round(sqrt(uv / vv) * 10^9), or 0 when v is empty.
+fn norm(u: List<Float>, v: List<Float>) -> Int {
+  let vv = dot(v, v)
+  case vv == 0.0 {
+    True => 0
+    False => {
+      let ratio = dot(u, v) / vv
+      let assert Ok(scaled) = float::round(float::sqrt(ratio) * 1000000000.0)
+      scaled
+    }
+  }
+}

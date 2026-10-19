@@ -1,0 +1,2 @@
+libs = []
+notes = "Async top-level Main; each index is its own Task.Run(() => Work(index)) on the default thread pool, a batch of 1000 is joined with await Task.WhenAll and its results summed."

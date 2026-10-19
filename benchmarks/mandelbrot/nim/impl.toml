@@ -1,0 +1,2 @@
+env = { nim_flags = "--passC:-ffp-contract=off" }
+notes = "-ffp-contract=off, as the SPEC requires for languages compiled through C"

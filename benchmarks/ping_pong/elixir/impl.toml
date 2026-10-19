@@ -1,0 +1,2 @@
+libs = []
+notes = "The main process is A; B is a plain `spawn`ed process. Messages are {:ping, i} and {:pong, x} sent with `send` and matched with `receive` (mailboxes, unbounded)."

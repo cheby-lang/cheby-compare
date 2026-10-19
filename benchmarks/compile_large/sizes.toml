@@ -1,0 +1,6 @@
+# The argument is M, the number of generated modules. gen.py writes the project for that M
+# and the runner builds it (see SPEC.md). The generated program itself takes no arguments.
+gen = "python3 gen.py {args} {out}"
+zero = ["1"]
+test = ["10"]
+bench = ["200"]

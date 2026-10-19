@@ -1,0 +1,2 @@
+libs = []
+notes = "Index-update shape on persistent vectors (nth, assoc) for perm1 and count; no transients or Java arrays, per the SPEC."

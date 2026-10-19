@@ -1,0 +1,2 @@
+libs = []
+notes = "A is the main async function, B an async function whose promise is awaited after A's loop. Channels are a hand-written rendezvous Channel<T> on promises (queues of waiting receivers and senders, no value slot), per the SPEC; no setTimeout/setImmediate/queueMicrotask. Single-threaded event loop, so each handoff is a promise resolution (microtask), not a thread switch."

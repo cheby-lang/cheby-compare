@@ -1,0 +1,2 @@
+libs = []
+notes = "One unstructured `Task { }` per stage (generator and filters); the stage functions are nonisolated async, so they run on the global concurrent executor. Channels are a hand-written rendezvous `actor Channel` (queues of waiting receivers' and senders' CheckedContinuations, no value slot). Shutdown is option 1: the top-level code prints and returns, ending the process with the stages suspended."

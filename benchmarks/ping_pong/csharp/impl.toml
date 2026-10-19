@@ -1,0 +1,2 @@
+libs = []
+notes = "Task A is the async top-level Main (no synchronization context, so after its first await it runs on the thread pool like B); task B is started with Task.Run and awaited at the end. Channels: Channel.CreateBounded<long>(new BoundedChannelOptions(0)), a true rendezvous since .NET 10, with FullMode = Wait, SingleReader and SingleWriter, one per direction, WriteAsync/ReadAsync (SPEC: capacity 0 where the primitive has it)."

@@ -1,0 +1,1 @@
+notes = "readFile, splitWhitespace, CountTable[string] (inc); entries copied to a seq and sorted with algorithm.sort and a comparator, not CountTable.sort."

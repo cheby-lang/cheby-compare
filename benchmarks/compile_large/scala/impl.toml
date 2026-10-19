@@ -1,0 +1,2 @@
+libs = []
+notes = "Flat default-package project: main.scala (top-level @main, folds over a List[Long => Long] of eta-expanded entry methods) plus one `object M0000`..`M<M-1>` per file with a private case class Item, a private enum Shape (four cases, matched with `match`) and 20 methods; base/entry public, the rest private. One cold scala-cli compile --server=false (scalac in a fresh JVM, no Bloop, no zinc state)."

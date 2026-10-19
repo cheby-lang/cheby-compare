@@ -1,0 +1,41 @@
+id = "csharp"
+name = "C#"
+kind = "clr"
+version = "echo \".NET SDK $(dotnet --version), runtime $(dotnet --list-runtimes | sed -n 's/^Microsoft.NETCore.App \\([^ ]*\\).*/\\1/p' | tail -n 1)\""
+comment = "//"
+extensions = [".cs"]
+# The real `dotnet` muxer comes first on PATH: Homebrew's /opt/homebrew/bin/dotnet is a bash
+# wrapper script that only sets DOTNET_ROOT and execs it, which would add a shell start to every
+# run (hello_world SPEC, "No shims or proxies"). The DOTNET_CLI_* variables keep the CLI quiet
+# and off the network (telemetry, first-run banner, workload update checks).
+env = { DOTNET_ROOT = "/opt/homebrew/opt/dotnet/libexec", PATH = "/opt/homebrew/opt/dotnet/libexec:$PATH", DOTNET_CLI_TELEMETRY_OPTOUT = "1", DOTNET_NOLOGO = "1", DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE = "1", DOTNET_GENERATE_ASPNET_CERTIFICATE = "false" }
+
+# One layout for every benchmark: the implementation directory holds main.csproj (the
+# `dotnet new console` project, net10.0, so the assembly is main.dll) and its .cs sources.
+# Nothing is written into the source directory: --artifacts-path puts obj/ and bin/ under
+# {build}/artifacts, and the published app goes to {build}/out.
+#
+# Release build: `dotnet publish -c Release`, framework-dependent, JIT (no ReadyToRun, no
+# NativeAOT, no trimming), every other property at the SDK default.
+#
+# Cold compile: --disable-build-servers, -nodeReuse:false and UseSharedCompilation=false, so
+# MSBuild starts no reusable worker nodes and csc runs as a fresh process instead of the
+# VBCSCompiler server. `dotnet publish` restores first, as it does for a developer; `clean` keeps
+# the restore outputs ({build}/artifacts/obj/main/project.assets.json and friends) and the NuGet
+# package cache (~/.nuget/packages), so the timed build's restore is a no-op (about 0.25 s of
+# hello_world's ~1.3 s) that needs no network, and csc recompiles only this program.
+build = "dotnet publish -c Release --artifacts-path {build}/artifacts -o {build}/out --disable-build-servers -nodeReuse:false -p:UseSharedCompilation=false"
+clean = "rm -rf {build}/out {build}/artifacts/bin {build}/artifacts/obj/main/release {build}/artifacts/publish"
+# Deployable form: `dotnet` on the published dll (never `dotnet run`), default runtime settings.
+run = "dotnet {build}/out/main.dll {args}"
+artifact = "{build}/out/main.dll"
+
+# Warm compile (CONVENTIONS "Measurement"): the same publish with MSBuild node reuse and the
+# VBCSCompiler shared compiler allowed, the SDK's defaults, writing the same {build}/out/main.dll
+# that `run` uses. .NET has no "start the server" command: the first build with servers allowed
+# launches the MSBuild worker node and VBCSCompiler, which then stay alive. So warm_start is one
+# such build; the runner then does its warm-up builds and times build_warm after `clean`.
+# warm_stop shuts both servers down (and the Razor server, if any), so nothing is left running.
+warm_start = "dotnet publish -c Release --artifacts-path {build}/artifacts -o {build}/out -nodeReuse:true -p:UseSharedCompilation=true"
+build_warm = "dotnet publish -c Release --artifacts-path {build}/artifacts -o {build}/out -nodeReuse:true -p:UseSharedCompilation=true"
+warm_stop = "dotnet build-server shutdown"

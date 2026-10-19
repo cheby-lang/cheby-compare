@@ -1,0 +1,2 @@
+libs = []
+notes = "One (future (work i)) per index, a batch started with mapv so every future starts before the first deref; joined with deref, summed with reduce. Futures run on Clojure's agent send-off pool (cached platform threads owned by the runtime), as the SPEC table prescribes for Clojure, so this row measures pooled OS threads, not virtual threads; (shutdown-agents) at the end."

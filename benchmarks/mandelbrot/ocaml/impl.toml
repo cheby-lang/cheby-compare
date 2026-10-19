@@ -1,0 +1,1 @@
+notes = "while loop over float refs (unboxed); products bound with let before their sums so arm64 ocamlopt emits no fmadd (checked in the disassembly)"

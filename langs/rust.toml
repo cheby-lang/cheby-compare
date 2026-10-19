@@ -1,0 +1,16 @@
+id = "rust"
+name = "Rust"
+kind = "aot"
+version = "rustc --version"
+comment = "//"
+extensions = [".rs"]
+# The real toolchain, not the rustup proxies in ~/.cargo/bin, which add 10-30% to a small
+# build (hello_world/SPEC.md).
+env = { PATH = "$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH" }
+
+# Every crate is named `main`. The target directory is per implementation, so `clean` removes
+# only this crate's outputs and keeps compiled third-party crates (serde_json, tokio).
+build = "cargo build --release --quiet --target-dir {build}"
+clean = "rm -rf {build}/release/main {build}/release/main.d {build}/release/deps/main-* {build}/release/.fingerprint/main-* {build}/release/incremental/main-*"
+run = "{build}/release/main {args}"
+artifact = "{build}/release/main"

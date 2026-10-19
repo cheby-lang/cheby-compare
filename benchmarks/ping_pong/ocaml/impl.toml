@@ -1,0 +1,1 @@
+notes = "Thread.create/Thread.join (threads.posix) and synchronous Event channels, both in the OCaml distribution. OCaml int is 63-bit, wide enough for the sum."

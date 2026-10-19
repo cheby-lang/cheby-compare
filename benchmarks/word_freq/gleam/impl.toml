@@ -1,0 +1,2 @@
+libs = []
+notes = "Two @externals, as the SPEC's Gleam guidance says: file:read_file/1 to read the file, and binary:split(Text, [<<\" \">>, <<\"\\n\">>], [global, trim_all]) to split it (gleam/string.split is grapheme-aware and far slower). Counting with dict.upsert in a gleam/dict, then list.sort with a comparator."

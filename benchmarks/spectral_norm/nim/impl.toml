@@ -1,0 +1,1 @@
+notes = "Default -d:release keeps Nim's overflow and bounds checks; the checked integer arithmetic in A(i, j) roughly doubles the run time against -d:danger (about 1.8 s vs 0.9 s at n = 5500), which is not used."

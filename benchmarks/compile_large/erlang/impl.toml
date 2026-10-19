@@ -1,0 +1,11 @@
+# compile_large is a rebar3 project (SPEC "Parallelism"): `rebar3 compile` compiles independent
+# modules in parallel, where `erlc *.erl` would be serial. rebar3 is an escript, so no compiler
+# server outlives the build. With no deps it touches no network (REBAR_OFFLINE=1 makes sure).
+# Its _build holds only this project's app and rebar3's source DAG, so `clean` removes all of it.
+# The proxy variables are unset only to keep rebar3's "httpc:set_options failed" noise out of the log.
+build = "env -u https_proxy -u HTTPS_PROXY -u http_proxy -u HTTP_PROXY -u all_proxy -u ALL_PROXY REBAR_BASE_DIR={build}/_build REBAR_OFFLINE=1 rebar3 compile"
+clean = "rm -rf {build}/_build"
+run = "erl -noshell -pa {build}/_build/default/lib/main/ebin -eval 'main:main(), halt(0).' -extra {args}"
+artifact = "{build}/_build/default/lib/main/ebin"
+libs = []
+notes = "rebar3 project, built with `rebar3 compile` (parallel); erl_opts [deterministic, no_debug_info], the same flags as langs/erlang.toml's erlc +deterministic (rebar3 would otherwise add debug_info)."

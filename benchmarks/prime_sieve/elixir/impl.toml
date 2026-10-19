@@ -1,0 +1,2 @@
+libs = []
+notes = "Plain `spawn`, `send` and `receive` with the SPEC's pull protocol ({:next, from} / {:num, m}). Shut down by option 1: main returns and the run's halt(0) ends the blocked stages."

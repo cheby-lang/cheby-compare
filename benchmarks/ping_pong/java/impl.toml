@@ -1,0 +1,2 @@
+libs = []
+notes = "Virtual threads for A and B (Thread.ofVirtual().start); main joins A, reads its sum from a FutureTask, then joins B. Channels: SynchronousQueue<Long>, put/take."

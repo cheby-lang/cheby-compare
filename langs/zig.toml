@@ -1,0 +1,27 @@
+id = "zig"
+name = "Zig"
+kind = "aot"
+version = "zig version"
+comment = "//"
+extensions = [".zig"]
+
+# A dedicated global cache, warmed by setup/zig.sh. It holds what Zig builds once per target and
+# mode (compiler_rt, the libSystem stubs) and fetched packages, like a dependency cache. Zig has no
+# separately compiled standard library: std is compiled as part of every program, from source.
+env = { ZIG_GLOBAL_CACHE_DIR = "{root}/build/zig-global-cache" }
+
+# Every implementation is `src/main.zig` (plus any modules it @imports), built with plain
+# `zig build-exe`: no build.zig, so no build-runner compile, and no compiler server. The local cache
+# lives in {build}/zig-cache and `clean` removes it with the executable, so every timed build
+# compiles this program from scratch while the global cache keeps compiler_rt.
+#
+# -O ReleaseFast is Zig's documented fastest release mode. Unlike ReleaseSafe (or Rust's --release,
+# Go and Swift), it turns off bounds and overflow checks.
+#
+# -mcpu=baseline: Zig targets the host CPU by default, which is in effect -march=native and is not
+# allowed by CONVENTIONS "Optimised builds". On aarch64-macos Zig's baseline is apple_m1
+# (std/Target.zig), the same generic CPU that rustc and Apple clang target by default.
+build = "zig build-exe -O ReleaseFast -mcpu=baseline --cache-dir {build}/zig-cache --name main -femit-bin={build}/main src/main.zig"
+clean = "rm -rf {build}/zig-cache {build}/main"
+run = "{build}/main {args}"
+artifact = "{build}/main"

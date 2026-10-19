@@ -1,0 +1,42 @@
+id = "scala"
+name = "Scala"
+kind = "jvm"
+# The compiler that `build` pins (-S 3.10.0), asked through scala-cli itself, then scala-cli and
+# the JDK. Run from the repository root; compiles nothing (`-version` stops scalac at once).
+version = "echo \"Scala $(scala-cli compile --server=false --jvm system -S 3.10.0 --workspace {build}/version --scalac-option -version benchmarks/hello_world/scala 2>&1 | sed -n 's/^Scala compiler version \\([^ ]*\\).*/\\1/p'), scala-cli $(scala-cli version --cli --offline), $(java -version 2>&1 | head -n 1)\""
+comment = "//"
+extensions = [".scala"]
+# The Homebrew JDK is keg-only: its bin goes first on PATH (so `java` is OpenJDK 27, never the
+# /usr/bin stub) and JAVA_HOME points at it, which `--jvm system` needs; without it scala-cli
+# finds no JVM or downloads its own. COURSIER_MODE=offline: dependency resolution (the compiler
+# jars, scala-library, ujson) only reads the Coursier cache that setup/scala.sh filled, so a
+# build never touches the network and fails loudly on an unfetched dependency. An impl.toml `env`
+# merges key by key, so these stay set.
+env = { PATH = "/opt/homebrew/opt/openjdk/bin:$PATH", JAVA_HOME = "/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home", COURSIER_MODE = "offline" }
+
+# One layout for every benchmark: the implementation directory holds main.scala, whose top-level
+# `@main def main(...)` compiles to class `main` (no `package` line), plus any other *.scala files.
+# Dependencies are `//> using dep` directives in the sources (see langs/scala.md).
+#
+# Cold compile: `scala-cli compile --server=false` runs scalac 3.10.0 in a fresh JVM, no Bloop
+# server and no incremental (zinc) state. --workspace keeps scala-cli's .scala-build/ and .bsp/
+# out of the source directory, -d copies the class files to {build}/classes, and -p prints the
+# class path, which sed turns into a java argument file ({build}/java.args) with {build}/classes
+# in place of the workspace copy. Scala 3 has no optimiser flag; scalac's defaults are its
+# release build. The command is wrapped in `sh -c '...'` because hyperfine 2 refuses a timed
+# command with unquoted `&&` or `>` (one extra sh start, ~2 ms of a ~1 s compile). `clean` drops
+# this program's classes, workspace and argument file; the compiler, scala-library and
+# third-party jars stay in the Coursier cache.
+build = '''sh -c 'mkdir -p {build} && scala-cli compile --server=false --jvm system -S 3.10.0 --workspace {build}/ws -d {build}/classes -p . > {build}/classpath && sed -e "s|[^:]*/ws/\.scala-build/[^:]*|{build}/classes|" -e "s|^|-cp |" {build}/classpath > {build}/java.args' '''
+clean = "rm -rf {build}/classes {build}/ws {build}/classpath {build}/java.args"
+# Deployable form: plain `java` on the class directory plus the scala-library (and any dependency)
+# jars from the argument file; default GC, JIT and heap flags. Never `scala-cli run`.
+run = "java @{build}/java.args main {args}"
+artifact = "{build}/classes"
+
+# Warm compile (CONVENTIONS "Measurement"): the same build through the Bloop server, scala-cli's
+# default (no --server=false). `clean` still wipes the workspace, so each timed build is a full
+# compile by a warm compiler, not an incremental no-op.
+warm_start = "scala-cli --power bloop start --jvm system"
+build_warm = '''sh -c 'mkdir -p {build} && scala-cli compile --jvm system --bloop-jvm system -S 3.10.0 --workspace {build}/ws -d {build}/classes -p . > {build}/classpath && sed -e "s|[^:]*/ws/\.scala-build/[^:]*|{build}/classes|" -e "s|^|-cp |" {build}/classpath > {build}/java.args' '''
+warm_stop = "scala-cli --power bloop exit"

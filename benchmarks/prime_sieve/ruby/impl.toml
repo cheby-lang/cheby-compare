@@ -1,0 +1,2 @@
+libs = []
+notes = "OS threads under the GVL, n + 2 at once; SizedQueue.new(1) channels (no capacity 0). Shutdown option 1: the main thread ends and the process kills the blocked threads."

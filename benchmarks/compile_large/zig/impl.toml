@@ -1,0 +1,2 @@
+libs = []
+notes = "src/main.zig plus src/m0000.zig..., each module @imports only the previous one; built with the plain langs/zig.toml command (zig build-exe -O ReleaseFast, --cache-dir {build}/zig-cache removed by clean). Integers are u64 (all values non-negative), Item is a struct, Shape a union(enum) matched with switch; only base and entry are pub. Output passes zig fmt --check. Zig compiles the whole program as one LLVM module, so the ReleaseFast build is effectively single-threaded (about 11 s wall at M = 200, user time about equal)."

@@ -1,0 +1,2 @@
+libs = []
+notes = "core:thread + core:sync/chan unbuffered channels. Shutdown option 1: main returns with the stage threads still blocked, never joined; channels are never freed."

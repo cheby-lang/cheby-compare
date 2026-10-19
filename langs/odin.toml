@@ -1,0 +1,22 @@
+id = "odin"
+name = "Odin"
+kind = "aot"
+version = "/opt/homebrew/opt/odin/libexec/odin version"
+comment = "//"
+extensions = [".odin"]
+
+# /opt/homebrew/bin/odin is a bash wrapper that puts llvm@22 first on PATH and execs the real
+# compiler. We do the same without the wrapper (no shims, CONVENTIONS "Deployable form"): Odin
+# links through `clang` from PATH, and the Homebrew build expects llvm@22's.
+env = { PATH = "/opt/homebrew/opt/llvm@22/bin:$PATH" }
+
+# Every implementation is one package in benchmarks/<bench>/odin/ (package main, main.odin plus
+# any other .odin files). `odin build .` compiles the directory as a package.
+# -o:speed is Odin's release optimisation level (the default, -o:minimal, is for development);
+# bounds checks stay on, as in every default Odin build. Odin has no build cache or daemon: each
+# build compiles the program and the core packages it imports from source, then links. The only
+# outputs are the executable and a main.o that Odin deletes after linking.
+build = "/opt/homebrew/opt/odin/libexec/odin build . -o:speed -out:{build}/main"
+clean = "rm -f {build}/main {build}/main.o"
+run = "{build}/main {args}"
+artifact = "{build}/main"

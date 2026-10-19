@@ -1,0 +1,97 @@
+//! Benchmark: the Mandelbrot set on an N x N grid.
+//!
+//! The point in column `x` and row `y` stands for the complex number
+//! `c = (2x / N - 1.5) + (2y / N - 1)i`. A point is inside the set when
+//! `z = z * z + c`, starting from zero, stays within 2 of zero for
+//! `max_iterations` steps. The program prints how many points are
+//! inside, the total number of steps taken, and a checksum of where the
+//! inside points are.
+//!
+//! The loops are top-level functions rather than local ones. Today's JIT
+//! boxes a `Float` on every local-function call, and also a `Float`
+//! returned from a call that is not a tail call, so only the self tail
+//! calls of top-level functions keep `zr` and `zi` unboxed. For the same
+//! reason `cr` is computed inline and the totals are accumulator
+//! arguments.
+
+import std::env
+import std::float
+import std::int
+import std::io
+
+/// How many steps a point may take before it counts as inside.
+const max_iterations: Int = 50
+
+/// The results over the whole grid.
+type Totals {
+  inside: Int,
+  iterations: Int,
+  checksum: Int,
+}
+
+fn main() {
+  let n = size(env::args())
+  let nf = float::from_int(n)
+  let totals = walk(n, nf, 0, 0, -1.0, 0, 0, 0)
+  let checksum = totals.checksum % 4_294_967_296
+  io::println("inside {totals.inside}")
+  io::println("iterations {totals.iterations}")
+  io::println("checksum {checksum}")
+}
+
+/// The grid size from the first program argument.
+fn size(args: List<String>) -> Int {
+  let assert [first, ..] = args
+  let assert Ok(n) = int::parse(first)
+  n
+}
+
+/// Adds the points from column `x` of row `y` onwards, row by row, to
+/// the totals so far. `nf` is `n` as a `Float`, and `ci` is the
+/// imaginary part of row `y`.
+fn walk(
+  n: Int,
+  nf: Float,
+  x: Int,
+  y: Int,
+  ci: Float,
+  inside: Int,
+  iterations: Int,
+  checksum: Int,
+) -> Totals {
+  case {
+    y == n => Totals { inside, iterations, checksum }
+    x == n => {
+      let next_ci = 2.0 * float::from_int(y + 1) / nf - 1.0
+      walk(n, nf, 0, y + 1, next_ci, inside, iterations, checksum)
+    }
+    _ => {
+      let cr = 2.0 * float::from_int(x) / nf - 1.5
+      let steps = escape_time(cr, ci, 0.0, 0.0, 0)
+      case {
+        steps == max_iterations => {
+          let position = y * n + x
+          walk(n, nf, x + 1, y, ci, inside + 1, iterations + steps, checksum + position)
+        }
+        _ => walk(n, nf, x + 1, y, ci, inside, iterations + steps, checksum)
+      }
+    }
+  }
+}
+
+/// The number of steps before the point `cr + ci i` gets further than 2
+/// from zero, or `max_iterations` if it never does. `z = zr + zi i`
+/// has taken `steps` steps so far.
+fn escape_time(cr: Float, ci: Float, zr: Float, zi: Float, steps: Int) -> Int {
+  case {
+    steps == max_iterations => steps
+    _ => {
+      let zr2 = zr * zr
+      let zi2 = zi * zi
+      case {
+        zr2 + zi2 > 4.0 => steps
+        _ => escape_time(cr, ci, zr2 - zi2 + cr, 2.0 * zr * zi + ci, steps + 1)
+      }
+    }
+  }
+}

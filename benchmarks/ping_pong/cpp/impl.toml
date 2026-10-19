@@ -1,0 +1,2 @@
+libs = []
+notes = "Task A is the main thread, task B one std::thread, joined. Channels are one-slot channels built from std::mutex, two std::condition_variables and a std::optional slot (SPEC: capacity 0 and 1 do the same work here)."

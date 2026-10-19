@@ -1,0 +1,24 @@
+# compile_large is a generated SwiftPM package built in the scratch path {build}/swift. swift-build
+# is the real tool of the Xcode toolchain, which langs/swift.toml's env puts first on PATH; the full
+# path is written here so that the timed command does not depend on a PATH lookup. The release
+# build is SwiftPM's default (-O, whole-module optimisation, parallel LLVM code generation).
+# --manifest-cache local keeps the compiled Package.swift in the scratch path, so clean removes it
+# too instead of a shared cache in ~/Library/Caches restoring it. No daemon: swift-build's build
+# service exits with the build.
+#
+# `clean` removes everything in the scratch path that is derived from this project (the manifest
+# cache and database, Intermediates.noindex, Products, the compilation cache, the release symlink)
+# and keeps three SDK caches that SwiftPM would otherwise rebuild on every clean build:
+# SDKStatCaches.noindex (a stat cache of the macOS SDK), SDKExplicitPrecompiledModules and
+# ModuleCache.noindex (the SDK's clang modules, SwiftShims and _SwiftConcurrencyShims, precompiled
+# to .pcm). They hold no module of this project. They are standard-library caches, which the
+# SPEC's "Build caches and daemons" rule keeps ("Caches of the standard library and of third-party
+# dependencies stay"), as Go's seeded std cache, Zig's compiler_rt and Rust's prebuilt std are
+# kept, and as langs/swift.toml keeps its shared -module-cache-path. Measured at M = 1:
+# about 2.1 s with a full clean against about 1.35 s with these three kept.
+build = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-build -c release --scratch-path {build}/swift --manifest-cache local"
+clean = "mkdir -p {build}/swift/out && find {build}/swift -mindepth 1 -maxdepth 1 ! -name out -exec rm -rf {} + && find {build}/swift/out -mindepth 1 -maxdepth 1 ! -name SDKStatCaches.noindex ! -name SDKExplicitPrecompiledModules ! -name ModuleCache.noindex -exec rm -rf {} +"
+run = "{build}/swift/release/main"
+artifact = "{build}/swift/release/main"
+libs = []
+notes = "One SwiftPM package `main` with one executable target: Sources/main/main.swift plus m0000.swift... per module, each wrapping its items in a caseless `enum M0000` namespace with a nested struct Item, a nested enum Shape with associated values (matched with switch) and static funcs; only base and entry are internal, the rest private. main folds with reduce over a literal [(Int) -> Int] of M0000.entry references. Built with `swift-build -c release --scratch-path {build}/swift --manifest-cache local`; clean removes every project-derived output in the scratch path and keeps only the SDK caches SwiftPM writes there (SDKStatCaches.noindex, SDKExplicitPrecompiledModules, ModuleCache.noindex: macOS SDK stat cache and SwiftShims/_SwiftConcurrencyShims .pcm, no project module), so the timed build does not re-precompile standard-library modules (about 0.8 s per build, measured at M=1: 2.1 s full clean against 1.35 s). Output passes swift-format lint."

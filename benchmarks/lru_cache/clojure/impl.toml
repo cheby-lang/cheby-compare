@@ -1,0 +1,2 @@
+libs = []
+notes = "Shape C as the SPEC prescribes for Clojure: entries a persistent hash-map key -> [value tick], by-tick a sorted-map tick -> key, evict with first; loop/recur, no LinkedHashMap interop. The row measures persistent-tree cost (shape C), not a mutable LinkedHashMap; no reflection or boxed-math warnings."

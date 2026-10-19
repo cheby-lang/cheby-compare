@@ -1,0 +1,32 @@
+id = "swift"
+name = "Swift"
+kind = "aot"
+version = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version"
+comment = "//"
+extensions = [".swift"]
+
+# The compiler is the real swiftc of the Xcode toolchain (Apple Swift 6.4), not /usr/bin/swiftc,
+# which is an xcrun trampoline (hello_world SPEC, "No shims or proxies"). Called directly, swiftc
+# needs SDKROOT to find the macOS SDK (Foundation, Darwin). The toolchain's bin goes first on PATH
+# so that `swift build` and friends, typed by hand or used by compile_large, are the real ones.
+env = { SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk", PATH = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH" }
+
+# Every implementation is one main.swift (top-level code is its entry point). Release flags are
+# SwiftPM's release defaults: -O with whole-module optimisation, no -Ounchecked, no LTO, no
+# -target-cpu. -swift-version 6 is the language mode of a Swift 6.4 package (tools-version 6.4);
+# bare swiftc would default to Swift 5 mode.
+#
+# Cold compile: swiftc has no build server or daemon. One driver process runs one swift-frontend
+# and the linker, and writes only {build}/main (objects go to a temporary directory and are
+# deleted). The implicit module cache, {root}/build/swift/module-cache, holds the SDK and
+# standard-library modules (Swift, Foundation, Dispatch, ...) compiled from their
+# .swiftinterface files: the standard library's compiled artifacts, shared by every Swift
+# benchmark, warmed by setup/swift.sh and kept by `clean`. So the timed build compiles and links
+# only this program.
+#
+# `build` has no shell syntax ($VAR, globs, &&): hyperfine runs the timed command without a shell.
+# A multi-file implementation overrides `build` in impl.toml and lists its files explicitly.
+build = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -O -wmo -swift-version 6 -module-cache-path {root}/build/swift/module-cache -o {build}/main main.swift"
+clean = "rm -f {build}/main"
+run = "{build}/main {args}"
+artifact = "{build}/main"

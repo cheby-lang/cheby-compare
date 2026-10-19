@@ -1,0 +1,2 @@
+libs = []
+notes = "Bodies are 7-tuples in a list, rebuilt every step: the first body is folded against each later one, then the updated rest recurses (the SPEC's recursive shape)."

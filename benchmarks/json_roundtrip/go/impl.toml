@@ -1,0 +1,1 @@
+notes = "Standard library encoding/json v1 with typed structs (json.Unmarshal / json.Marshal), no third-party module; output structs share tags, address and history with the parsed records."

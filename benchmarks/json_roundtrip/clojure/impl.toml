@@ -1,0 +1,3 @@
+libs = ["clojure.data.json 2.5.2"]
+notes = "clojure.data.json read-str with :key-fn keyword and write-str (compact, default options). Output records are array-maps in the SPEC's key order; address and history entries are shared with the parsed records, which data.json builds as array-maps in input order (3 and 2 keys). Counters folded with reduce; the library is AOT-compiled once by setup (CLJ_AOT_LIBS) so the build compiles only main. The artifact size counts only the program's own classes ({build}/classes), not the data.json classes on the classpath, as Java counts its classes without Jackson."
+env = { CLJ_AOT_LIBS = "{root}/build/clojure-lib/data.json-2.5.2" }

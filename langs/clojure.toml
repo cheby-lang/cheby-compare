@@ -1,0 +1,35 @@
+id = "clojure"
+name = "Clojure"
+kind = "jvm"
+version = "clojure -Srepro -M -e '(println \"Clojure\" (clojure-version) \"on OpenJDK\" (System/getProperty \"java.version\"))'"
+comment = ";"
+extensions = [".clj"]
+# The Homebrew JDK is keg-only: put its bin first on PATH, so `java` (and the JVM the clojure CLI
+# starts) is OpenJDK 27. CLJ_CACHE holds the CLI's classpath cache, outside the source tree.
+# CLJ_AOT_LIBS is a colon list of directories with AOT-compiled third-party namespaces (from
+# setup/clojure.sh), put before the jars at compile and run time; an impl.toml sets it, e.g.
+# json_roundtrip: env = { CLJ_AOT_LIBS = "{root}/build/clojure-lib/data.json-2.5.2" }.
+# An impl.toml `env` merges key by key, so PATH and CLJ_CACHE stay set.
+env = { PATH = "/opt/homebrew/opt/openjdk/bin:$PATH", CLJ_CACHE = "{root}/build/clojure-cache", CLJ_AOT_LIBS = "" }
+
+# One layout for every benchmark: deps.edn (Clojure 1.12.6 plus any library) and src/main.clj,
+# namespace `main` with (:gen-class) and -main, plus any namespaces it requires under src/.
+#
+# build, step by step (no daemon, every step a fresh process):
+#   1. The clojure CLI resolves deps.edn into the jar classpath. It runs in {build}, with the
+#      deps passed as -Sdeps, so its cache goes to CLJ_CACHE and no .cpcache lands in the source
+#      tree. With a warm cache (setup/clojure.sh) this is a bash script reading one file, ~10 ms,
+#      offline. Only absolute (jar) entries are kept; the source path is `src`.
+#   2. {build}/run.args gets `-cp {build}/classes:<libs>:<jars>`, a java @argfile for `run`.
+#   3. One cold JVM AOT-compiles namespace `main` (and every namespace of the program it
+#      requires) into {build}/classes with clojure.lang.Compile, Clojure's own AOT entry point.
+#      Clojure itself ships AOT-compiled in its jar, and CLJ_AOT_LIBS dirs hold the libraries'
+#      classes, so only the program is compiled. Default compiler options (no direct linking).
+build = '''mkdir -p {build}/classes && deps=$(cat deps.edn) && jars=$(cd {build} && clojure -Srepro -Sdeps "$deps" -Spath | tr : '\n' | grep '^/' | paste -sd: -) && test -n "$jars" && cp="${CLJ_AOT_LIBS:+$CLJ_AOT_LIBS:}$jars" && printf -- '-cp %s\n' "{build}/classes:$cp" > {build}/run.args && java -Dclojure.compile.path={build}/classes -cp "src:{build}/classes:$cp" clojure.lang.Compile main'''
+# Removes only this program's classes and argfile; ~/.m2, the classpath cache and
+# build/clojure-lib/ (AOT-compiled libraries) are kept.
+clean = "rm -rf {build}/classes {build}/run.args"
+# Deployable form: plain `java` on the class directory plus the dependency jars, default flags.
+# `@file` is the java launcher's own argument-file syntax; the file holds only `-cp ...`.
+run = "java @{build}/run.args main {args}"
+artifact = "{build}/classes"

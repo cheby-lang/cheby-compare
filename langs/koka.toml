@@ -1,0 +1,49 @@
+id = "koka"
+name = "Koka"
+kind = "aot"
+version = "koka --version"
+comment = "//"
+extensions = [".kk"]
+
+# Koka compiles to C and calls a C compiler. By default it finds /usr/bin/clang, an xcrun
+# trampoline that adds a few ms to each of its clang calls (hello_world SPEC, "No shims or
+# proxies"). Putting the Xcode toolchain first on PATH makes koka pick the real Apple clang (it
+# searches PATH for `clang`), which needs SDKROOT to find the macOS SDK, as in langs/cpp.toml.
+#
+# Extra flags for one implementation go in its impl.toml as koka's own environment variable, which
+# koka prepends to its command line in `build` and in the warm-up builds of `clean` alike:
+#   env = { koka_options = "--ccopts=-ffp-contract=off" }      (mandelbrot)
+env = { PATH = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH", SDKROOT = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" }
+
+# Every implementation is `main.kk` (module main, `pub fun main()`), plus any modules it imports
+# from the same directory. `-O2` is Koka's optimised build (its C side is clang -O2 -g -DNDEBUG plus
+# koka's own default -march=armv8.1-a -mtune=native; we add nothing). One cold `koka` process:
+# no daemon, no server. `build` has no shell syntax because hyperfine runs it without a shell.
+#
+# All build products live in {build}/koka/v3.2.9/clang-drelease-<hash>/. Koka copies the
+# standard library (std_*.kki/.c/.h/.o), its runtime kklib.o and the libuv/pcre2 archives (*.a)
+# there and compiles them locally. Those are the standard library's artifacts and `clean` keeps
+# them. It deletes everything else: the program's own modules (main.*, main__main.*, any other
+# module's files) and the executables. In a fresh build dir, or after the program starts importing
+# another std module, koka first copies the precompiled std objects and recompiles them on the next
+# build (they are older than the locally built kklib.o). One or two untimed warm-up builds absorb
+# that, and a final prune removes the program's outputs again, so every timed build compiles and
+# links only this program. The warm-up runs only when it is needed: when the build dir has no
+# kklib.o, or when {build}/.koka-warm, written after the last warm-up, does not match the koka
+# version, koka_options and the program's sources (so a new std import triggers it). Otherwise the
+# std objects are already at the fixed point and `clean` only prunes, instead of a full untimed
+# rebuild before every timed one. (At the fixed point some std objects are older than kklib.o, so
+# that test alone, which `stale` uses inside the warm-up, cannot tell a fixed point.)
+build = "koka -O2 -v0 --builddir={build}/koka -o {build}/main main.kk"
+clean = '''
+K={build}/koka
+W={build}/.koka-warm
+prune() { rm -f {build}/main; [ ! -d "$K" ] || find "$K" -type f ! -name 'std_*' ! -name 'kklib.o' ! -name '*.a' -delete; }
+warm() { koka -O2 -v0 --builddir="$K" -o {build}/main main.kk >/dev/null 2>&1 || true; }
+stale() { for d in "$K"/v*/*/; do [ -f "$d/main.o" ] || continue; [ -f "$d/kklib.o" ] || return 0; [ -z "$(find "$d" -name 'std_*.o' ! -newer "$d/kklib.o")" ] || return 0; done; return 1; }
+cold() { set -- "$K"/v*/*/kklib.o; [ ! -f "$1" ]; }
+sig() { { koka --version 2>&1 | head -n 1; echo "$koka_options"; cat ./*.kk; } | shasum; }
+prune; S=$(sig); if cold || [ "$(cat "$W" 2>/dev/null)" != "$S" ]; then warm; if stale; then warm; fi; prune; mkdir -p {build}; echo "$S" > "$W"; fi
+'''
+run = "{build}/main {args}"
+artifact = "{build}/main"

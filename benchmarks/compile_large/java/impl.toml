@@ -1,0 +1,2 @@
+libs = []
+notes = "Flat default-package project: Main.java plus one final class M0000..M<M-1> per file, nested record Item and sealed interface Shape with four record variants matched by a switch pattern; base/entry package-private, the rest private. Main folds over a LongUnaryOperator[] of method references. One cold javac process over all files (javac has no parallel driver or daemon)."

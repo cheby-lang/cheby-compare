@@ -1,0 +1,8 @@
+libs = ["jackson-databind 3.2.3", "jackson-core 3.2.3", "jackson-annotations 2.22"]
+notes = "Jackson 3 databind (tools.jackson), typed decoding into records; output records written in component order with writeValueAsBytes. jackson-core and jackson-annotations are databind's own dependencies. The deployable form is {build}/app: the class directory plus a copy of the three Jackson jars (about 2.5 MB), so artifact size counts them; like every Java row it excludes the JDK."
+# The build copies the jars (fetched once by setup/java.sh into build/java-lib/) next to the
+# classes, so {build}/app is what would be deployed. clean removes only this program's classes.
+build = 'mkdir -p {build}/app/classes {build}/app/lib && cp "{root}"/build/java-lib/*.jar {build}/app/lib/ && javac -d {build}/app/classes -cp "{build}/app/lib/*" *.java'
+clean = "rm -rf {build}/app/classes"
+run = 'java -cp "{build}/app/classes:{build}/app/lib/*" Main {args}'
+artifact = "{build}/app"

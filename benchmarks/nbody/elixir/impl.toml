@@ -1,0 +1,2 @@
+libs = []
+notes = "Bodies are 7-tuples in a list, rebuilt every step: the first body is folded against each later one, then the updated rest recurses (the SPEC's recursive shape). About 40% slower than erlang/main.erl, whose hot path is otherwise the same expression for expression: Enum.map(&move/1) and Enum.reverse are remote calls, where Erlang uses a local list comprehension and lists:reverse. Making both local (checked on the decompiled beam) closes the gap; the idiomatic Enum calls are kept on purpose."

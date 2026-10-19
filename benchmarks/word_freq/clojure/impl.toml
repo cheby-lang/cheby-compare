@@ -1,0 +1,2 @@
+libs = []
+notes = "slurp, clojure.string/split on #\"\\s+\" (leading empty part dropped), frequencies (a transient hash map), sort with a comparator: count descending, then compare on strings (String.compareTo, ordinal)"

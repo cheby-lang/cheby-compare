@@ -1,0 +1,2 @@
+libs = []
+notes = "Timed as a full cold run: Ruby keeps no bytecode cache, so every run parses and compiles all modules. Data.define for Item and the Shape variants, case/in for area. Linter rule: the generated project is checked with `ruby -w` (no warnings); RuboCop is not part of the toolchain. The one-letter parameter `x` follows the SPEC's pseudo-code."

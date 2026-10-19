@@ -1,0 +1,1 @@
+notes = "File.ReadAllText, string.Split([' ', '\\n'], RemoveEmptyEntries), Dictionary<string, int> (default ordinal comparer) updated with TryGetValue then the indexer (two lookups, the plain idiom its peers use), List.Sort with a comparator using string.CompareOrdinal"

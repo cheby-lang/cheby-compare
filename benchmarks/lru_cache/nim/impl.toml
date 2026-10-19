@@ -1,0 +1,1 @@
+notes = "Shape B: Table[int, int] from key to slot plus a seq of nodes linked by index; table and seq reserve capacity up front, as the SPEC allows."

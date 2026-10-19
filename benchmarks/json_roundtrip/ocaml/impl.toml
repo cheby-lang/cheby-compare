@@ -1,0 +1,2 @@
+libs = ["yojson 3.0.0"]
+notes = "Yojson.Safe.from_string into a value tree, decoded into typed records with Yojson.Safe.Util; output records built as `Assoc lists in key order and written with Yojson.Safe.to_string (compact)."

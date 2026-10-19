@@ -1,0 +1,1 @@
+notes = "In_channel.input_all, String.split_on_char on '\\n' then ' ' (empty parts skipped), the generic Hashtbl (find_opt then replace/add), List.sort with a comparator using String.compare (byte order)."

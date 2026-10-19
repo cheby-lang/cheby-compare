@@ -1,0 +1,2 @@
+libs = []
+notes = "Built-in JSON.parse and JSON.stringify (no library), interfaces for the records. Output records are new object literals in the SPEC's key order; address and history objects are shared with the parsed records, whose key order JSON.parse keeps. Counters are numbers (doubles), exact below 2^53; FNV-1a uses Math.imul and >>> 0."

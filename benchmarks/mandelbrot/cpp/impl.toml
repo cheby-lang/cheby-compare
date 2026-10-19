@@ -1,0 +1,2 @@
+build = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -std=c++23 -O3 -ffp-contract=off -o {build}/main main.cpp"
+notes = "-ffp-contract=off, as the SPEC requires"

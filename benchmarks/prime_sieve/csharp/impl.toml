@@ -1,0 +1,2 @@
+libs = []
+notes = "Async top-level Main receives the primes; the generator and each filter are started with Task.Run. Channels: Channel.CreateBounded<long>(new BoundedChannelOptions(0)), a true rendezvous since .NET 10, with FullMode = Wait, SingleReader and SingleWriter (SPEC: capacity 0 where the primitive has it). Shutdown is SPEC option 2: one CancellationToken passed to every ReadAsync/WriteAsync is cancelled, then all tasks are awaited with Task.WhenAll (the OperationCanceledException is expected and caught)."

@@ -1,0 +1,1 @@
+notes = "Shape A: a plain Hash, which keeps insertion order. The lookup is Hash#delete, which returns the stored value on a hit (then re-inserted at the end); a miss evicts with Hash#shift."

@@ -1,0 +1,5 @@
+# compile_large times a cold load: every timed run compiles every module from source, as a clean
+# build does for the compiled languages. CPython would otherwise write __pycache__ on the untimed
+# check run and load cached bytecode from then on (see SPEC.md, Measurement).
+env = { PYTHONDONTWRITEBYTECODE = "1" }
+notes = "Cold load: no bytecode cache (PYTHONDONTWRITEBYTECODE=1)."

@@ -1,0 +1,2 @@
+libs = []
+notes = "A is the main thread, B is started with io.concurrent on the std.Io.Threaded that main(init: std.process.Init) receives (default options, so B gets its own OS thread) and awaited through its Future. Channels are std.Io.Queue(i64) with a zero-length buffer (rendezvous), putOne and getOne."

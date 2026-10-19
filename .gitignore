@@ -1,0 +1,8 @@
+/inputs/data/
+/build/
+__pycache__/
+target/
+_build/
+node_modules/
+.DS_Store
+/results/raw/

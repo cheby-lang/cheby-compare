@@ -1,0 +1,3 @@
+zero = ["{data}/json-0.json", "1"]
+test = ["{data}/json-test.json", "2"]
+bench = ["{data}/json-bench.json", "9"]

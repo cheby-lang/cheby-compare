@@ -1,0 +1,2 @@
+notes = "No FMA (SPEC): koka_options passes -ffp-contract=off to clang. Loops are tail-recursive functions; the totals are a small struct."
+env = { koka_options = "--ccopts=-ffp-contract=off" }

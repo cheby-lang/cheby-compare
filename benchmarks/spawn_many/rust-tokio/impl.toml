@@ -1,0 +1,2 @@
+libs = ["tokio"]
+notes = "#[tokio::main] (multi-thread runtime, default worker count). One tokio::spawn(async move { work(i) }) per index; each batch's JoinHandles are awaited in order and summed. The spawner is the #[tokio::main] future, which runs through block_on on the main OS thread, not on a worker: each spawn goes through the runtime's global inject queue, and each await of an unfinished handle parks the main thread (as the SPEC row describes)."

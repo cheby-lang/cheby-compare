@@ -1,0 +1,2 @@
+libs = []
+notes = "Nodes are {node, L, R} with the atom nil for an empty child, as the SPEC prescribes. Every node, leaves included, is a fresh heap tuple: make/2 takes the empty child as an argument and is exported, because the compiler folds a leaf written as {node, nil, nil}, or built from a nil passed between local functions, into one shared literal (the same fix in Elixir and Gleam; OCaml uses Sys.opaque_identity)."

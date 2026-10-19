@@ -1,0 +1,65 @@
+//! ping_pong: two fibers exchange `n` messages over two channels of
+//! capacity 0.
+//!
+//! The main fiber sends 1 to n on `ping`. The echo fiber answers each
+//! value with the value plus one on `pong`. The main fiber sums the
+//! answers and prints `n` and the sum.
+
+import std::channel
+import std::env
+import std::fiber
+import std::int
+import std::io
+
+fn main() {
+  let assert [arg, ..] = env::args()
+  let assert Ok(n) = int::parse(arg)
+  let assert Ok(sum) = exchange(n)
+  io::println("{n}")
+  io::println("{sum}")
+}
+
+/// Runs the echo fiber for `n` rounds and returns the sum of its answers.
+/// The result is an `Err` only if the echo fiber panics.
+fn exchange(n: Int) -> Result<Int, fiber::Panic> {
+  use scope <- fiber::scope()
+  let (ping_tx, ping_rx) = channel::new::<Int>(0)
+  let (pong_tx, pong_rx) = channel::new::<Int>(0)
+  fiber::spawn(scope, fn() { echo(ping_rx, pong_tx, n) })
+  play(ping_tx, pong_rx, n, 1, 0)
+}
+
+/// Sends `i` to `n` on `ping`, adding each answer from `pong` to `sum`.
+fn play(
+  ping: channel::Sender<Int>,
+  pong: channel::Receiver<Int>,
+  n: Int,
+  i: Int,
+  sum: Int,
+) -> Int {
+  case i > n {
+    True => sum
+    False => {
+      let assert Ok(_) = channel::send(ping, i)
+      let assert Ok(answer) = channel::receive(pong)
+      play(ping, pong, n, i + 1, sum + answer)
+    }
+  }
+}
+
+/// Answers `remaining` values from `ping` with the value plus one on
+/// `pong`.
+fn echo(
+  ping: channel::Receiver<Int>,
+  pong: channel::Sender<Int>,
+  remaining: Int,
+) {
+  case remaining {
+    0 => Nil
+    _ => {
+      let assert Ok(x) = channel::receive(ping)
+      let assert Ok(_) = channel::send(pong, x + 1)
+      echo(ping, pong, remaining - 1)
+    }
+  }
+}

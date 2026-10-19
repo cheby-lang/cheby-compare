@@ -1,0 +1,2 @@
+libs = []
+notes = "One OS thread per index (Thread.new), joined with Thread#value; the GVL runs the work one thread at a time."

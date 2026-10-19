@@ -1,0 +1,17 @@
+id = "ruby"
+name = "Ruby"
+kind = "interpreter"
+version = "ruby --version"
+comment = "#"
+extensions = [".rb"]
+# Homebrew's Ruby 4.0 first on PATH: /usr/bin/ruby is macOS's Ruby 2.6, which has no YJIT.
+env = { PATH = "/opt/homebrew/opt/ruby/bin:$PATH" }
+
+# No build step: `ruby` parses and compiles to bytecode on every run (no bytecode cache by
+# default), so that work is part of the run and start-up times. YJIT is on, as CONVENTIONS.md
+# allows for Ruby: it is the recommended production setting. Each implementation is a single
+# main.rb (more files are fine, loaded with require_relative). Only the standard library and its
+# default gems (json, set) are used, so no Gemfile and no bundler at run time.
+build = ""
+clean = ""
+run = "ruby --yjit main.rb {args}"

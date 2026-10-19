@@ -1,0 +1,2 @@
+libs = []
+notes = "Shape B: std.AutoHashMap(u64, u32) from key to slot plus an ArrayList of nodes linked by index; the map is rehashed once every `capacity` evictions, as the SPEC asks, because Zig's HashMap keeps tombstones and never rehashes at a constant size."

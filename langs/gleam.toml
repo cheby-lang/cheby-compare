@@ -1,0 +1,30 @@
+id = "gleam"
+name = "Gleam"
+kind = "beam"
+version = '''echo "$(gleam --version), Erlang/OTP $(erl -noshell -eval 'io:put_chars(erlang:system_info(otp_release)), halt(0).')"'''
+comment = "//"
+extensions = [".gleam", ".erl"]
+# ERL_CRASH_DUMP_SECONDS=0: a crashing program writes no erl_crash.dump into the source dir.
+env = { ERL_CRASH_DUMP_SECONDS = "0" }
+
+# One layout for every benchmark: benchmarks/<bench>/gleam/ is a Gleam project named `main`
+# (gleam.toml, manifest.toml, src/main.gleam with `pub fn main()`, plus any other modules).
+# `build` copies it into {build}/proj (mtimes kept) and runs one cold `gleam build` there, so
+# Gleam's build/ directory never lands in the source tree. Gleam has no daemon or compile server.
+#
+# Why `gleam build` and not `gleam export erlang-shipment`: the export always deletes
+# build/prod and recompiles every dependency, gleam_stdlib included, so no `clean` could keep
+# the standard library compiled. The beams are the same: dev and prod builds pass erlc the same
+# options and produce byte-identical .beam files, and a shipment is those ebin dirs copied.
+#
+# `clean` removes only this package's compiled output; gleam_stdlib and any hex dependency stay
+# compiled in build/dev/erlang/<dep>, and downloaded packages stay in build/packages and in
+# Gleam's global hex cache. After setup/gleam.sh has run, `build` works offline.
+build = "mkdir -p {build}/proj && rm -rf {build}/proj/src && cp -Rp gleam.toml manifest.toml src {build}/proj/ && cd {build}/proj && gleam build --target erlang --no-print-progress"
+clean = "rm -rf {build}/proj/build/dev/erlang/main"
+# Deployable form: erl on the compiled beams (what the shipment's entrypoint.sh runs), default
+# boot script and emulator flags; call the entry, then halt(0) at once (hello_world SPEC, BEAM
+# notes). Arguments arrive after -extra; read them with init:get_plain_arguments() (langs/gleam.md).
+run = "erl -noshell -pa {build}/proj/build/dev/erlang/*/ebin -eval 'main:main(), halt(0).' -extra {args}"
+# The program's own beams. gleam_stdlib's beams ship next to them, as OTP does for Erlang.
+artifact = "{build}/proj/build/dev/erlang/main/ebin"

@@ -1,0 +1,2 @@
+libs = []
+notes = "type Tree { Empty Node(left, right) }; the loops are tail-recursive functions; 2^k is int.bitwise_shift_left. Every node, leaves included, is a fresh heap tuple: make takes the empty child as an argument and is pub (so Tree is pub too), because the Erlang compiler folds a leaf written as Node(Empty, Empty), or built from an Empty passed between private functions, into one shared literal (the same fix in Erlang and Elixir; OCaml uses Sys.opaque_identity)."

@@ -1,0 +1,2 @@
+libs = []
+notes = "OTP json module (json:decode/1, json:encode/2). Output records, addresses and history entries are ordered key-value lists written through json:encode_key_value_list/2, because decoded maps encode in sorted key order."
