@@ -166,6 +166,4 @@ other immutable-sequence languages were at risk too. At `10` every language fini
 the timeout, and hyperfine still measures Rust's 0.19 s to within about 3%.
 
 Size 0 loads every function but runs no flip and no rotation, because `[0]` needs no flips and
-step 3 returns at once with `r == n`. Cheby's compile estimate therefore relies on its JIT
-compiling every function eagerly before `main` runs. Re-check this when M3 changes the
-compilation model (lazy compilation, D-254, or `cheby build`).
+step 3 returns at once with `r == n`.

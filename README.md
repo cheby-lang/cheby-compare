@@ -12,7 +12,8 @@ before adding or changing an implementation.
 
 | Id                  | Language             | Kind        | Notes                                                   |
 | ------------------- | -------------------- | ----------- | ------------------------------------------------------- |
-| `cheby`             | Cheby                | JIT         | compile and run times are an estimated split, see below |
+| `cheby`             | Cheby                | JIT         | `cheby run`, whole process with a warm cache, see below |
+| `cheby-aot`         | Cheby (AOT)          | AOT         | `cheby build` of the same programs, see below           |
 | `gleam`             | Gleam                | BEAM        | concurrency through `gleam_erlang` and `gleam_otp`      |
 | `rust`              | Rust                 | AOT         | the baseline of the summary ratios                      |
 | `go`                | Go                   | AOT         |                                                         |
@@ -184,7 +185,8 @@ The full rules are in [CONVENTIONS.md](CONVENTIONS.md#measurement). In short:
   starts the server, does three warm-up builds, then times five builds after `clean`.
 - **Third-party libraries are not part of compile time.** `clean` removes only the program's own
   outputs and keeps the fetched and compiled dependencies (JSON libraries, tokio, core.async,
-  Eio), so the number is the time to compile the program, not its libraries.
+  Eio), so the number is the time to compile the program, not its libraries. For Cheby, `clean`
+  resets its build cache to one that holds std (see "Cheby's two rows").
 - **Ruby runs with `--yjit`**, its recommended production setting. Other interpreters run with
   their defaults.
 - **Peak memory** is the maximum resident set size of one bench-size run under
@@ -196,37 +198,37 @@ The full rules are in [CONVENTIONS.md](CONVENTIONS.md#measurement). In short:
   to Rust. Rows marked `comparable = false` are shown but left out of the means and of the
   "vs fastest" baseline, and the library variants get their own table.
 
-### Cheby's estimated split
+### Cheby's two rows
 
-Until its milestone M3 adds AOT output, Cheby only has a JIT, and `cheby run` type-checks,
-compiles and runs in one process. Its compile and run times cannot be timed apart, so they are
-**estimated**:
+Cheby has two rows on the same programs, `benchmarks/<bench>/cheby/`. Each has its own build cache
+under `build/`, through `CHEBY_CACHE`, so a measurement never touches the machine's cache.
 
-- **Compile ≈** the median run at size 0 **of the same program**. The JIT compiles every function
-  that `main` reaches before `main` starts (D-510), which in these programs is all of the
-  benchmark's code, so this run compiles all of it, not a hello-world-sized amount, and then does
-  almost no work.
-- **Run ≈** the median run at the bench size minus that estimate.
-- `cheby check` is timed too and reported as front-end time.
+- **Cheby (AOT)**, id `cheby-aot`, is `cheby build`. Its run time is the executable, its artifact
+  size is the executable, and its compile time is a build from a cache that holds the standard
+  library and none of the program.
+- **Cheby (JIT, whole process)**, id `cheby`, is `cheby run` with the program's code in the cache.
+  Its run time is the whole process: start-up, loading the cached code and the program. It has no
+  compile time of its own, so it shows none and is left out of the compile means.
 
-Every report marks these numbers: rows say "JIT, estimated split", values carry ≈, and the
-summary also gives Cheby's whole-process ratio (compile + run) next to the estimate. Known
-limits of the split:
+**Why the cache is reset.** `cheby build` caches each module's compiled code, so a rebuild that
+only removes the executable compiles nothing. `clean` runs `runner/cheby-cache.sh`, which restores
+a seed that holds std, as other languages keep their compiled standard library. An untimed build
+of `runner/cheby-seed/`, a program that reaches every std module the benchmarks use, fills the seed
+once per `cheby` binary. A timed build compiles the program and links it. Most of its time is the
+link, and the debug profile is the only one until Cheby's milestone M6, so its code is unoptimised.
 
-- The size-0 run also contains process start-up and runtime initialisation, so the compile
-  estimate is slightly high and the run estimate slightly low compared with the other
-  languages, whose run time includes their start-up.
-- The run estimate is the difference of two noisy medians. On short benchmarks its relative
-  error is large; it is clamped at 0 and flagged when the difference is negative.
-- The split relies on eager compilation. If `cheby run` starts compiling lazily (planned with
-  M3's cached code, D-254), a size-0 run would skip code that only the real workload reaches,
-  and compile work would move into the run estimate. Cheby moves to `cheby build` with M3, which
-  removes the estimate. An exact in-process split would need a timing option in the compiler,
-  which would need its own decision-log entry there.
-- For `compile_large`, Cheby's number is a `cheby run` of the generated project: compile plus a
-  trivial `main`.
+**Why the JIT has no estimate any more.** Until M3 the runner estimated compile time as a size-0
+run and run time as a bench-size run minus that. `cheby run` now loads cached code, so a warm
+size-0 run compiles nothing, and that estimate would be a cache load.
+
+For `compile_large`, the JIT row is one cold `cheby run` of the generated project from the same
+seed, and the AOT row is one `cheby build`. `cheby check` is timed from the seed too, on the JIT
+row, and reported as front-end time.
 
 ## Cheby's strengths and weaknesses
+
+_This section analyses the 2026-10-19 numbers of the JIT, before AOT output. The tables in
+Results are newer, and where they differ, they are right._
 
 On run time, Cheby is 14.5× slower than Rust on the CPU group (5 benchmarks), 39.5× on the data
 group (3) and 21.1× on both together (8). These are the Summary's geometric means. On CPU, only
@@ -320,31 +322,31 @@ Caveats:
 ## Results
 
 <!-- results:start -->
-_Measured on Apple M3, macOS 27.0 (26A428), 2026-10-19. Full tables: [RESULTS.md](RESULTS.md); charts: [report/index.html](report/index.html)._
+_Measured on Apple M3, macOS 27.0 (26A428), Cheby rows 2026-11-07, other languages 2026-10-19. Full tables: [RESULTS.md](RESULTS.md); charts: [report/index.html](report/index.html)._
 
-| Language                             | Kind        | CPU run vs Rust | Data run vs Rust | Concurrency run vs Rust | CPU + data run vs Rust | Compile vs Rust (cold) |
-| ------------------------------------ | ----------- | --------------: | ---------------: | ----------------------: | ---------------------: | ---------------------: |
-| Cheby (JIT, estimated split)         | jit         |       14.5× (5) |        39.5× (3) |               0.08× (3) |              21.1× (8) |             0.06× (12) |
-| Cheby (whole process: compile + run) | jit         |       14.6× (5) |        39.6× (3) |               0.09× (3) |              21.2× (8) |                      – |
-| Gleam                                | beam        |       10.1× (5) |        27.6× (3) |               0.35× (3) |              14.7× (8) |             1.05× (12) |
-| Rust                                 | aot         |       1.00× (5) |        1.00× (3) |               1.00× (3) |              1.00× (8) |             1.00× (12) |
-| Go                                   | aot         |       1.08× (5) |        1.60× (3) |               0.05× (3) |              1.25× (8) |             1.22× (12) |
-| Zig                                  | aot         |       0.89× (5) |        1.38× (3) |               1.07× (3) |              1.05× (8) |             28.6× (12) |
-| Odin                                 | aot         |       1.16× (5) |        2.73× (3) |               1.27× (3) |              1.60× (8) |             6.44× (12) |
-| C++                                  | aot         |       1.15× (5) |        2.12× (3) |               1.84× (3) |              1.45× (8) |             2.11× (12) |
-| Erlang                               | beam        |       7.69× (5) |        19.9× (3) |               0.31× (3) |              11.0× (8) |             0.73× (12) |
-| Python                               | interpreter |       38.2× (5) |        6.76× (3) |               1.86× (3) |              19.9× (8) |                      – |
-| Java                                 | jvm         |       0.90× (5) |        2.85× (3) |               0.30× (3) |              1.39× (8) |             1.25× (12) |
-| TypeScript                           | jsvm        |       1.23× (5) |        3.59× (3) |               0.14× (3) |              1.84× (8) |             0.18× (12) |
-| Swift                                | aot         |       1.33× (5) |        3.09× (3) |               0.39× (3) |              1.82× (8) |             2.06× (12) |
-| C#                                   | clr         |       1.17× (5) |        2.92× (3) |               0.33× (3) |              1.65× (8) |             6.33× (12) |
-| Elixir                               | beam        |       8.84× (5) |        18.7× (3) |               0.40× (3) |              11.7× (8) |             1.73× (12) |
-| Scala                                | jvm         |       1.03× (5) |        3.82× (3) |               0.47× (3) |              1.68× (8) |             6.92× (12) |
-| Clojure                              | jvm         |       2.94× (5) |        13.0× (3) |               0.74× (3) |              5.13× (8) |             2.16× (12) |
-| Koka                                 | aot         |       2.88× (5) |        17.8× (3) |                       – |              5.70× (8) |              4.52× (9) |
-| OCaml                                | aot         |       1.24× (5) |        6.18× (3) |               3.02× (3) |              2.27× (8) |             0.99× (12) |
-| Nim                                  | aot         |       1.23× (5) |        2.31× (3) |               1.25× (3) |              1.56× (8) |             2.43× (12) |
-| Ruby                                 | interpreter |       17.0× (5) |        4.28× (3) |               2.98× (3) |              10.1× (8) |                      – |
+| Language                   | Kind        | CPU run vs Rust | Data run vs Rust | Concurrency run vs Rust | CPU + data run vs Rust | Compile vs Rust (cold) |
+| -------------------------- | ----------- | --------------: | ---------------: | ----------------------: | ---------------------: | ---------------------: |
+| Cheby (JIT, whole process) | jit         |       10.7× (5) |        18.3× (3) |               0.09× (3) |              13.1× (8) |                      – |
+| Cheby (AOT)                | aot         |       10.5× (5) |        17.6× (3) |               0.07× (3) |              12.7× (8) |             0.35× (12) |
+| Gleam                      | beam        |       10.1× (5) |        27.6× (3) |               0.35× (3) |              14.7× (8) |             1.05× (12) |
+| Rust                       | aot         |       1.00× (5) |        1.00× (3) |               1.00× (3) |              1.00× (8) |             1.00× (12) |
+| Go                         | aot         |       1.08× (5) |        1.60× (3) |               0.05× (3) |              1.25× (8) |             1.22× (12) |
+| Zig                        | aot         |       0.89× (5) |        1.38× (3) |               1.07× (3) |              1.05× (8) |             28.6× (12) |
+| Odin                       | aot         |       1.16× (5) |        2.73× (3) |               1.27× (3) |              1.60× (8) |             6.44× (12) |
+| C++                        | aot         |       1.15× (5) |        2.12× (3) |               1.84× (3) |              1.45× (8) |             2.11× (12) |
+| Erlang                     | beam        |       7.69× (5) |        19.9× (3) |               0.31× (3) |              11.0× (8) |             0.73× (12) |
+| Python                     | interpreter |       38.2× (5) |        6.76× (3) |               1.86× (3) |              19.9× (8) |                      – |
+| Java                       | jvm         |       0.90× (5) |        2.85× (3) |               0.30× (3) |              1.39× (8) |             1.25× (12) |
+| TypeScript                 | jsvm        |       1.23× (5) |        3.59× (3) |               0.14× (3) |              1.84× (8) |             0.18× (12) |
+| Swift                      | aot         |       1.33× (5) |        3.09× (3) |               0.39× (3) |              1.82× (8) |             2.06× (12) |
+| C#                         | clr         |       1.17× (5) |        2.92× (3) |               0.33× (3) |              1.65× (8) |             6.33× (12) |
+| Elixir                     | beam        |       8.84× (5) |        18.7× (3) |               0.40× (3) |              11.7× (8) |             1.73× (12) |
+| Scala                      | jvm         |       1.03× (5) |        3.82× (3) |               0.47× (3) |              1.68× (8) |             6.92× (12) |
+| Clojure                    | jvm         |       2.94× (5) |        13.0× (3) |               0.74× (3) |              5.13× (8) |             2.16× (12) |
+| Koka                       | aot         |       2.88× (5) |        17.8× (3) |                       – |              5.70× (8) |              4.52× (9) |
+| OCaml                      | aot         |       1.24× (5) |        6.18× (3) |               3.02× (3) |              2.27× (8) |             0.99× (12) |
+| Nim                        | aot         |       1.23× (5) |        2.31× (3) |               1.25× (3) |              1.56× (8) |             2.43× (12) |
+| Ruby                       | interpreter |       17.0× (5) |        4.28× (3) |               2.98× (3) |              10.1× (8) |                      – |
 
 Geometric mean of the per-benchmark ratio to Rust, with the number of benchmarks in parentheses. Below 1× is faster than Rust. Run time is averaged per group (CPU, data, concurrency, and CPU and data together) and never over all three: the concurrency benchmarks compare task runtimes, often lightweight tasks against Rust's OS threads, and one mean over everything would let them hide the CPU and data results. Compile time covers every benchmark with a compile step and is the cold compile (no build server; Scala's and C#'s warm compile is in the per-benchmark tables). Rows marked not comparable are left out: Koka (ping_pong, spawn_many, prime_sieve).
 

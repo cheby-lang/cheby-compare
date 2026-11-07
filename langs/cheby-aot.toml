@@ -1,0 +1,15 @@
+id = "cheby-aot"
+name = "Cheby (AOT)"
+kind = "aot"
+impl_dir = "cheby"                    # the same programs as `cheby`, built with `cheby build`
+version = "echo \"$({cheby} --version) ($(git -C \"$(dirname {cheby})/../..\" describe --always --dirty --abbrev=8 2>/dev/null || echo unknown))\""
+comment = "//"
+extensions = [".cheby"]
+env = { CHEBY_CACHE = "{lang_build}/cache" }
+
+# `clean` resets the cache to std alone, so a timed build compiles the program, links it and
+# reuses std. Removing only the executable would leave the program's code in the cache.
+build = "{cheby} build -o {build}/main"
+clean = "rm -f {build}/main && sh {root}/runner/cheby-cache.sh {cheby} {lang_build}/cache"
+run = "{build}/main {args}"
+artifact = "{build}/main"

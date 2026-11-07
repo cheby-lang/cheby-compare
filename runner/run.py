@@ -45,7 +45,7 @@ DATA_DIR = ROOT / "inputs" / "data"
 DEFAULT_CHEBY = (ROOT.parent / "cheby" / "target" / "release" / "cheby").resolve()
 
 LANG_ORDER = [
-    "cheby", "gleam", "rust", "rust-tokio", "go", "zig", "odin", "cpp", "erlang", "python",
+    "cheby", "cheby-aot", "gleam", "rust", "rust-tokio", "go", "zig", "odin", "cpp", "erlang", "python",
     "java", "typescript", "swift", "csharp", "elixir", "scala", "clojure", "clojure-coreasync",
     "koka", "ocaml", "ocaml-eio", "nim", "ruby",
 ]
@@ -119,8 +119,11 @@ class Ctx:
         return {k: v for k, v in load_toml(p).items() if not isinstance(v, list)}
 
     def impl(self, lang: str, bench: str) -> "Impl | None":
-        d = self.benchmarks_dir / bench / lang
-        if lang not in self.langs or not d.is_dir():
+        if lang not in self.langs:
+            return None
+        # `impl_dir`: this id builds another id's sources, as cheby-aot does cheby's.
+        d = self.benchmarks_dir / bench / self.langs[lang].get("impl_dir", lang)
+        if not d.is_dir():
             return None
         return Impl(self, lang, bench, d)
 
@@ -156,6 +159,7 @@ class Impl:
         argstr = " ".join(shlex.quote(a.replace("{data}", str(DATA_DIR))) for a in (args or []))
         return (s.replace("{build}", str(build))
                  .replace("{args}", argstr)
+                 .replace("{lang_build}", str(self.ctx.build_root / self.cfg["id"]))
                  .replace("{cheby}", shlex.quote(str(self.ctx.cheby)))
                  .replace("{root}", str(ROOT))
                  .replace("{data}", str(DATA_DIR)))
@@ -636,7 +640,7 @@ def machine_info() -> dict:
 def cheby_commit(ctx: Ctx) -> str:
     repo = ctx.cheby.parent.parent.parent
     try:
-        p = subprocess.run(["git", "-C", str(repo), "rev-parse", "--short", "HEAD"],
+        p = subprocess.run(["git", "-C", str(repo), "describe", "--always", "--dirty", "--abbrev=8"],
                            capture_output=True, text=True, timeout=10)
         return p.stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
@@ -706,7 +710,7 @@ def cmd_measure(ctx: Ctx, a) -> int:
     if not shutil.which("hyperfine"):
         sys.exit("hyperfine is not on PATH (see setup.sh)")
     for lang in langs:
-        if lang not in d["versions"] and any(ctx.impl(lang, b) for b in benches):
+        if (a.redo or lang not in d["versions"]) and any(ctx.impl(lang, b) for b in benches):
             d["versions"][lang] = lang_version(ctx, lang)
     res.save()
 
@@ -728,10 +732,8 @@ def cmd_measure(ctx: Ctx, a) -> int:
                 entry = measure_one(impl, a)
                 d["entries"][key] = entry
                 res.save()
-                comp = (f"compile ≈ {brief(entry['compile_estimate'])} (estimate)"
-                        if entry.get("compile_estimate") else f"compile {brief(entry.get('compile'))}")
                 log(f"   {entry['status']}: run {brief(entry.get('run'))}; start-up "
-                    f"{brief(entry.get('startup'))}; {comp}")
+                    f"{brief(entry.get('startup'))}; compile {brief(entry.get('compile'))}")
     except KeyboardInterrupt:
         res.save()
         log(f"interrupted; partial results kept in {out}")
@@ -815,15 +817,13 @@ def measure_one(impl: Impl, a) -> dict:
             e["compile_warm"] = warm
         # The last timed build leaves the artifact in place, but make sure it is there.
         do_build(impl)
-    if impl.cfg.get("check"):
-        e["check"] = hyperfine(impl.subst(impl.cfg["check"]), impl.dir, env,
-                               3 if a.quick else 5, 0 if a.quick else 1)
-    if impl.cfg.get("kind") == "jit":
-        add_jit_estimates(e)
     if "bench" in sizes and e.get("status") != "timeout":
         e["rss_bytes"] = peak_rss(run_cmd(impl, sizes["bench"]), impl.dir, env, a.timeout + 30)
     elif "bench" not in sizes and "zero" in sizes:
         e["rss_bytes"] = peak_rss(run_cmd(impl, sizes["zero"]), impl.dir, env, a.timeout + 30)
+    # After the peak memory run: `clean` may reset a cache that run relies on being warm.
+    if impl.cfg.get("check"):
+        e["check"] = timed_check(impl, impl.dir, env, 3 if a.quick else 5, a.quick)
     if impl.cfg.get("artifact"):
         e["artifact_bytes"] = path_size(Path(impl.subst(impl.cfg["artifact"])))
     if "status" not in e:
@@ -857,25 +857,13 @@ def warm_compile(impl: "Impl", cwd: Path, env: dict, n: int, quick: bool, build:
             sh(impl.subst(cfg["warm_stop"], **kw), cwd, env, BUILD_TIMEOUT)
 
 
-def add_jit_estimates(e: dict) -> None:
-    """Cheby until M3: compile = median run at size 0; runtime = bench median - that."""
-    st = e.get("startup")
-    if not st or "error" in st:
-        return
-    comp = st["median"]
-    e["compile_estimate"] = {"median": comp, "min": st["min"], "max": st["max"],
-                             "estimated": True, "method": "median run at size 0"}
-    run = e.get("run")
-    if run and "error" not in run:
-        e["runtime_estimate"] = {
-            "median": max(run["median"] - comp, 0.0),
-            "min": max(run["min"] - comp, 0.0),
-            "max": max(run["max"] - comp, 0.0),
-            "estimated": True,
-            "method": "median run at bench size minus compile_estimate",
-            "clamped": run["median"] - comp < 0,
-        }
-    e["estimated"] = True
+def timed_check(impl: "Impl", cwd: Path, env: dict, n: int, quick: bool,
+                build: Path | None = None) -> dict:
+    """The front-end command, each run after `clean`, so that a cache cannot answer it."""
+    kw = {"build": build} if build is not None else {}
+    clean = str(impl.cfg.get("clean", "")).strip()
+    return hyperfine(impl.subst(impl.cfg["check"], **kw), cwd, env, n, 0,
+                     prepare=impl.subst(clean, **kw) if clean else None)
 
 
 def measure_project(impl: Impl, res: Results, a) -> None:
@@ -917,14 +905,14 @@ def measure_project(impl: Impl, res: Results, a) -> None:
                     s["compile_warm"] = warm
             else:
                 # JIT and interpreters: the time to load (and for Cheby, compile) everything.
+                # `clean` makes that a cold run where a cache would otherwise skip the compile.
+                clean = str(impl.cfg.get("clean", "")).strip()
                 s["measure"] = "run"
                 s["compile"] = hyperfine(impl.subst(impl.cfg["run"], args=[], build=build),
-                                         project, env, n, 0 if a.quick else 1)
-                if impl.cfg.get("kind") == "jit":
-                    s["compile"]["estimated"] = True
+                                         project, env, n, 0 if a.quick or clean else 1,
+                                         prepare=impl.subst(clean, build=build) if clean else None)
             if impl.cfg.get("check") and "status" not in s:
-                s["check"] = hyperfine(impl.subst(impl.cfg["check"], build=build), project, env,
-                                       n, 0 if a.quick else 1)
+                s["check"] = timed_check(impl, project, env, n, a.quick, build=build)
             if "status" not in s:
                 s["status"] = "error" if "error" in s.get("compile", {}) else "ok"
         entry["sizes"][size] = s

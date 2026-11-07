@@ -303,13 +303,8 @@ order. Measured on a loaded M-series machine: Cheby 0.035 s in all, of which its
 (start-up and compiling the whole program, D-254's eager JIT) is 0.011 s; Go about 0.025 s in
 all, 0.004 s of it at size 0, with a run-to-run spread of about ±18%.
 
-Under CONVENTIONS, Cheby's run time is its `bench` median minus its size-0 median, an estimate,
-while Go's run time is its whole median, start-up included. At this size the subtraction alone
-is about a third of Cheby's total. So:
-
-- Do not rank the Cheby and Go rows against each other at `bench`. Both are start-up-dominated.
-- Wherever Cheby's run time appears, mark it as an estimate and show its total `bench` time
-  next to it.
+Every run time here, Cheby's and Go's, is a whole median, start-up included. So do not rank the
+Cheby and Go rows against each other at `bench`: both are start-up-dominated.
 
 Raising `bench` to `n = 2000` would separate them (Cheby 0.1 s, Rust about 3.3 s, 2002 threads),
 but it breaks the CONVENTIONS rule that Rust takes 0.5 to 1 s. That choice is left open for the

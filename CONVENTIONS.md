@@ -6,11 +6,13 @@ wrong.
 
 ## Languages
 
-Twenty languages, each with an id used in paths and results:
+Twenty languages, each with an id used in paths and results. Cheby has two ids, one per way of
+running the same programs:
 
 | Id           | Language   | Kind        | Toolchain (2026-10)               |
 | ------------ | ---------- | ----------- | --------------------------------- |
 | `cheby`      | Cheby      | JIT         | `../cheby/target/release/cheby`   |
+| `cheby-aot`  | Cheby      | AOT         | `../cheby/target/release/cheby`   |
 | `gleam`      | Gleam      | BEAM        | gleam 1.19, Erlang/OTP 29         |
 | `rust`       | Rust       | AOT         | rustc 1.99                        |
 | `go`         | Go         | AOT         | go 1.27                           |
@@ -82,8 +84,8 @@ into a directory, and the runner builds that project (see its SPEC.md).
 
 - A program reads its arguments from the command line, writes its result to stdout, and exits 0.
   It reads no environment variable and no file except one named in its arguments.
-- **Size 0 is valid** and must run almost instantly with the same code path. Cheby's compile time
-  is measured as a run at size 0 (below), so size 0 must still load and compile the whole program.
+- **Size 0 is valid** and must run almost instantly with the same code path, so that start-up is
+  measured on the whole program.
 - Output is deterministic and byte-identical across languages: the same lines, `\n` endings, no
   trailing spaces.
 - **No float formatting.** Languages format floats differently, and Cheby has no fixed-decimal
@@ -129,7 +131,8 @@ env = {}                             # extra environment for every command
 
 # Every command runs in the implementation directory, benchmarks/<bench>/<lang>/, through sh -c.
 # Placeholders: {build} is an absolute, per-implementation build directory under build/,
-# {args} the size's arguments, {cheby} the cheby binary, {root} the repository root.
+# {args} the size's arguments, {cheby} the cheby binary, {root} the repository root,
+# {lang_build} one directory under build/ for this id, shared by all its implementations.
 build = "cargo build --release --quiet --target-dir {build}"
 clean = "rm -rf {build}/release/main {build}/release/deps/main-*"   # keep third-party builds
 run = "{build}/release/main {args}"
@@ -142,7 +145,10 @@ time to compile this program, not its libraries. The same holds for the standard
 toolchain can reuse a compiled standard library (Go's cache, Koka's and Nim's object caches,
 Swift's module cache, the precompiled libraries of Rust, OCaml and the BEAM), `clean` keeps it,
 after an untimed warm-up build if needed. Zig and Odin compile the program and its standard
-library as one unit and cannot reuse it, so their compile time includes it. An implementation may override any key, and add
+library as one unit and cannot reuse it, so their compile time includes it. Cheby's `clean` resets
+its build cache to one that holds std, because its cache would otherwise hold the program's code
+too. `impl_dir = "<id>"` makes an id build another id's sources, as `cheby-aot` does `cheby`'s, so
+no `benchmarks/<bench>/<id>/` exists for it. An implementation may override any key, and add
 `libs = [...]` and `notes = "..."`, in `benchmarks/<bench>/<lang>/impl.toml`.
 
 ## `sizes.toml`
@@ -176,10 +182,10 @@ that read a generated file. `test` is small enough to check every language in ab
   (Python docstrings, Elixir `@doc` and `@moduledoc`) are not counted.
 - **Start-up** is the median run time at size 0.
 - **Output** is checked against `expected/` before anything is timed. A wrong output is never timed.
-- **Cheby** compiles and runs in one step until its milestone M3 adds AOT output. Its compile time is
-  the median run at size 0 of the same program, whose JIT compiles every function that `main`
-  reaches, eagerly, before `main` runs (D-510; lazy compilation arrives in M3, D-254). Size 0 must
-  take the same code path, so that this is all of the program. Its run time is the median run at the bench
-  size minus that. Both are marked as estimates in the reports. `cheby check` time is reported too,
-  as front-end time. When M3 lands, Cheby moves to `cheby build` like the AOT languages.
+- **Cheby** has two rows on the same programs. `cheby-aot` is `cheby build`, measured like any AOT
+  language, from a cache that holds std and none of the program. `cheby` is `cheby run` with the
+  program's code in the cache: its run time is the whole process, and it has no compile time.
+  Compiling is cached, so the size-0 estimates this file used before M3 would now time a cache load
+  (D-254). For `compile_large`, `cheby` is one cold `cheby run` of the project. `cheby check` time
+  is reported on the `cheby` row, as front-end time, from the same cache.
 - Nothing else runs while measuring: the runner measures one thing at a time.

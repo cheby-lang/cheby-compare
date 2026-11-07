@@ -28,7 +28,7 @@ It does not stress generics, macros or heavy optimisation.
   full code generation of all `20 * M` functions. It compiles in parallel: `-j` defaults to the
   available parallelism, so Cheby gets several cores where Python gets one (see Parallelism).
   Cached module code and lazy compilation (D-254) arrive in M3 and are not measured here.
-  Cheby's number is an estimate (see Measurement).
+  Cheby has two rows (see Measurement).
 
 ## Arguments
 
@@ -224,15 +224,11 @@ project once and checks its output against `expected/<size>.out`, then times:
     mostly class creation and compilation, not loading.
   - Ruby has no bytecode cache by default, so it needs no setting. `Data.define` builds its
     classes in C without generating source.
-- **Cheby**, until M3 adds `cheby build`: one full `cheby run` in the generated project. It
-  parses, type-checks and JIT-compiles all `20 * M` functions eagerly before `main` runs, then
-  runs `main`. The run is reported as the compile time and marked as an estimate. It includes
-  process start-up and `main`'s own work: about 12 to 15 ms in all at `M = 1`, and well under
-  1 ms of `main` at `M = 200`, against about 250 to 300 ms in all. `cheby check` is timed too
-  and reported as front-end time (about 55 to 75 ms at `M = 200`). The runner times the whole
-  run and subtracts nothing, so the compile-into-runtime leakage that the size-0 subtraction has
-  on the runtime benchmarks does not arise here. What remains is the fixed start-up cost, which
-  the per-module slope below cancels.
+- **Cheby** has two rows, each from a cache that holds std and none of the project. `cheby-aot` is
+  one `cheby build`: it checks and compiles all `20 * M` functions and links them. `cheby` is one
+  `cheby run`: it checks and compiles them, then runs `main`, so it includes process start-up and
+  `main`'s own work, and the per-module slope below cancels that fixed cost. `cheby check` is timed
+  too and reported as front-end time.
 - Generated sources are counted for lines of code with the language's `extensions`.
 
 ### Parallelism
