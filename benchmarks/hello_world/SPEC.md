@@ -19,38 +19,19 @@ program and its start-up time.
   linker. VM languages (JVM, CLR, BEAM, node) pay for starting the VM and loading classes or
   modules. Interpreters (Python, Ruby) pay for interpreter start-up and the import of their core
   modules. Clojure and Scala also load their language runtime on top of the JVM.
-- **Expected for Cheby: favours it on the compile column, hurts it on start-up against AOT
-  executables, favours it on start-up against VMs and interpreters.**
-  - Compile: Cheby's number (about 9 ms) sits far below a release build of an AOT language
-    (hundreds of milliseconds), but it is not a like-for-like number. Cheby links nothing, does no
-    optimised code generation and writes no artifact (see Cheby measurement).
-  - Start-up against AOT executables: several times slower (about 9 ms against 1 to 2 ms), because
-    Cheby runs its front end on every run. Most of the 9 ms, roughly 85 to 90%, is the work
-    `cheby check` also does.
-  - Start-up against the JVM, CLR, BEAM, node and interpreters: faster, since Cheby starts no VM.
-
-  Until M3, `cheby run` parses and type-checks the program and the parts of `std` it imports, then
-  JIT-compiles every function reachable from `main`, all before `main` runs (D-510, D-534). That
-  front-end and code-generation work happens on every run. The program has no computation, so
-  this benchmark isolates the fixed cost of Cheby's pipeline.
+- **Expected for Cheby: a compile time near a small AOT build, start-up near other executables.**
+  - Compile: `cheby build` compiles this one small module and links it with std's cached code. Most
+    of its time is the link. The code is unoptimised, so it is not a like-for-like number against a
+    release build (see Cheby measurement).
+  - Start-up: the executable runs no front end. `cheby run`, the JIT row, reads the cached code of
+    the program and of std, so it starts later than the executable and earlier than the JVM, CLR,
+    BEAM, node and the interpreters.
 
 ## Cheby measurement
 
-Cheby compiles and runs in one step until M3 (see CONVENTIONS.md, Measurement). Its compile time is
-the median run at size 0, and its run time is the median run at the bench size minus that. Here
-every size is `0`, so:
-
-- The compile estimate is the size-0 run of the same program. Reachability from `main` is static,
-  so the JIT compiles the same code at every size, and no code generation leaks into the run-time
-  estimate. (Code reached only on the bench path would leak, which the size-0 rule forbids.)
-
-- Cheby's compile time and its start-up time are the same measurement. Both are estimates.
-- Cheby's run-time estimate is about zero by construction. Ignore it for this benchmark.
-- `cheby check` time is reported next to it as front-end time. The gap between `cheby run` and
-  `cheby check` is roughly code generation plus process start-up.
-
-The compile number counts work an AOT language does at build time and Cheby does at every run.
-Read it as "time from source to output", not as a pure compile time.
+Cheby has two rows (see CONVENTIONS.md, Measurement). The `cheby-aot` row is measured like any AOT
+language. The `cheby` row is the whole `cheby run` process with a warm cache, so it shows start-up
+and no compile time. `cheby check` time is reported next to it as front-end time.
 
 ## Arguments
 

@@ -21,9 +21,7 @@ an array of 50 000 small records with nested objects and arrays, 15 MB of text.
 - Measured while writing this spec, at the bench size on a busy machine: Rust 0.5 s, Python
   4.5 s, Cheby 65 s wall (53 s user, 320 MB peak RSS), which leaves Cheby well inside the 120 s
   timeout. About 80% of Cheby's time is `json::parse` (about 3 MB/s), most of it the syntax pass.
-- Cheby's split into compile and run time is an estimate, as for every benchmark. Its zero-size
-  run takes about 25 ms and `cheby check` about 15 ms, so whatever compile work the subtraction
-  misses is negligible against a run of about a minute.
+- Cheby's two rows run the same compiled code, so expect them to match within noise.
 
 ## Arguments
 

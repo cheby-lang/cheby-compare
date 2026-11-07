@@ -1,0 +1,39 @@
+//! Reaches every standard-library module that the benchmarks use. Building this program fills a
+//! cache with their compiled code, which `runner/cheby-cache.sh` keeps as the seed of the cache a
+//! cold compile starts from. It is built and never run.
+
+import std::bytes
+import std::channel
+import std::env
+import std::fiber
+import std::float
+import std::int
+import std::io
+import std::json
+import std::json::decode
+import std::list
+import std::map
+import std::ordered_map
+import std::result
+import std::string
+
+fn main() {
+  let parts = list::length(string::split("a b", " ")) + list::length(env::args())
+  let size = bytes::length(bytes::from_string("a"))
+  let counts = map::size(map::upsert(map::new(), "a", fn(_) { 1 }))
+  let ordered = ordered_map::size(ordered_map::insert(ordered_map::new(), 1, 2))
+  let assert Ok(root) = float::round(float::sqrt(float::from_int(parts + size + counts + ordered)))
+  let parsed = result::is_ok(json::parse("1", decode::int()))
+  let sent = result::is_ok(exchange())
+  let shown = int::show(root)
+  io::println("{shown} {parsed} {sent}")
+}
+
+/// Sends one value over a channel from a fiber.
+fn exchange() -> Result<Int, fiber::Panic> {
+  use scope <- fiber::scope()
+  let (sender, receiver) = channel::new::<Int>(0)
+  fiber::spawn(scope, fn() { channel::send(sender, 1) })
+  let assert Ok(value) = channel::receive(receiver)
+  value
+}

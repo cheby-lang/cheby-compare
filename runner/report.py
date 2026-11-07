@@ -4,8 +4,8 @@
 Usage: report.py [results/<file>.json] [--md RESULTS.md] [--html report/index.html]
                  [--readme README.md | --no-readme] [--out-dir DIR] [--benchmarks-dir benchmarks]
 
-Without a results file, the newest results/*.json is used. Cheby's compile and run times are
-estimates until M3 (see CONVENTIONS.md, "Measurement"), and every Cheby number says so.
+Without a results file, the newest results/*.json is used. Cheby has two rows: `cheby` runs the
+program with the JIT and `cheby-aot` builds an executable (see CONVENTIONS.md, "Measurement").
 
 --out-dir DIR writes DIR/RESULTS.md, DIR/report/index.html and DIR/README-results.md (the
 summary that would go into the README) and leaves the repository's copies alone, for test runs.
@@ -15,8 +15,8 @@ benchmarks/<bench>/<lang>/impl.toml when an older results file lacks them):
   comparable = false   the row is shown, tagged "not comparable" with `comparable_note` as a
                        footnote, and left out of geometric means and "fastest" baselines
   known_failure = "…"  shown instead of the raw error when that implementation fails
-Library variants (ids with '-', such as rust-tokio) appear only in the benchmarks they
-implement and get their own summary table instead of joining the per-language one.
+Library variants (ids with '-', such as rust-tokio, except cheby-aot) appear only in the
+benchmarks they implement and get their own summary table instead of joining the per-language one.
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ BENCH_INFO = {
 }
 BENCH_ORDER = list(BENCH_INFO)
 LANG_ORDER = [
-    "cheby", "gleam", "rust", "rust-tokio", "go", "zig", "odin", "cpp", "erlang", "python",
+    "cheby", "cheby-aot", "gleam", "rust", "rust-tokio", "go", "zig", "odin", "cpp", "erlang", "python",
     "java", "typescript", "swift", "csharp", "elixir", "scala", "clojure", "clojure-coreasync",
     "koka", "ocaml", "ocaml-eio", "nim", "ruby",
 ]
@@ -59,8 +59,8 @@ STATUS_TEXT = {
     "run-error": "run error", "unverified": "no expected output", "error": "error",
     "FAIL": "wrong output",
 }
-EST = "JIT, estimated split"
 WHOLE = "JIT, whole process"
+CHEBY_IDS = ("cheby", "cheby-aot")  # the rows the report highlights
 NC = "not comparable"
 KNOWN = "known failure"
 # Display names of the library variants, used when the results lack a "Base (library)" name.
@@ -73,7 +73,7 @@ IMPL_KEYS = ("comparable", "comparable_note", "known_failure", "libs", "notes")
 
 
 def is_variant(lang: str) -> bool:
-    return "-" in lang
+    return "-" in lang and lang not in CHEBY_IDS
 
 
 def variant_base(lang: str) -> str:
@@ -174,7 +174,7 @@ def geomean(xs):
 
 
 class Row:
-    """One implementation's numbers for one benchmark, with Cheby's estimates applied."""
+    """One implementation's numbers for one benchmark."""
 
     def __init__(self, e: dict, versions: dict):
         self.e = e
@@ -183,28 +183,16 @@ class Row:
         self.kind = e.get("kind", "")
         self.status = e.get("status", "?")
         self.jit = self.kind == "jit"
+        self.hl = self.lang in CHEBY_IDS
         self.variant = is_variant(self.lang)
         self.comparable = e.get("comparable", True) is not False
         self.comparable_note = e.get("comparable_note") or ""
         self.known_failure = e.get("known_failure") or ""
-        run = ok_stats(e.get("run"))
-        self.whole = run  # the whole process at bench size
-        self.n1 = n1(run)  # the bench-size run was timed once (over 60 s)
-        # Size-0 benchmarks (hello_world): no split, the whole process is the run time.
-        self.no_split = self.jit and bool(e.get("no_split"))
-        if self.no_split:
-            self.run = run
-            self.compile = ok_stats(e.get("compile_estimate"))
-            self.compile_warm = None
-        elif self.jit:
-            self.run = ok_stats(e.get("runtime_estimate"))
-            self.compile = ok_stats(e.get("compile_estimate"))
-            self.compile_warm = None
-        else:
-            self.run = run
-            self.compile = ok_stats(e.get("compile"))
-            # Scala (Bloop) and C# (build server): a second compile time with the server warm.
-            self.compile_warm = ok_stats(e.get("compile_warm"))
+        self.run = ok_stats(e.get("run"))
+        self.n1 = n1(self.run)  # the bench-size run was timed once (over 60 s)
+        self.compile = ok_stats(e.get("compile"))
+        # Scala (Bloop) and C# (build server): a second compile time with the server warm.
+        self.compile_warm = ok_stats(e.get("compile_warm"))
         self.startup = ok_stats(e.get("startup"))
         self.check = ok_stats(e.get("check"))
         self.rss = e.get("rss_bytes")
@@ -216,8 +204,7 @@ class Row:
 
     @property
     def label(self) -> str:
-        s = (f"{self.name} ({WHOLE})" if self.no_split
-             else f"{self.name} ({EST})" if self.jit else self.name)
+        s = f"{self.name} ({WHOLE})" if self.jit else self.name
         return s if self.comparable else f"{s} ({NC})"
 
     @property
@@ -249,18 +236,6 @@ def enrich(data: dict, benchmarks_dir: Path) -> None:
             if k in cache[p] and not e.get(k):
                 e[k] = cache[p][k]
         e["name"] = display_name(e["lang"], e.get("name"))
-        # A JIT entry whose bench size is size 0 (hello_world) has no compile/run split: the
-        # estimate would be one size-0 run minus another, which is noise. It shows the whole
-        # process instead.
-        sp = benchmarks_dir / e.get("bench", "") / "sizes.toml"
-        if sp not in cache:
-            try:
-                cache[sp] = tomllib.loads(sp.read_text()) if sp.is_file() else {}
-            except (OSError, tomllib.TOMLDecodeError):
-                cache[sp] = {}
-        zero = cache[sp].get("zero")
-        if e.get("kind") == "jit" and zero is not None and e.get("args") == zero:
-            e["no_split"] = True
 
 
 def comparable(e: dict) -> bool:
@@ -302,9 +277,8 @@ def summary(benches: dict[str, list[dict]], versions: dict) -> list[dict]:
         for lang, r in rows.items():
             s = per_lang.setdefault(lang, {"lang": lang, "name": r.name, "kind": r.kind,
                                            "variant": r.variant, "base": variant_base(lang),
-                                           "run": [], "whole": [], "compile": [], "vs_base": [],
+                                           "run": [], "compile": [], "vs_base": [],
                                            "run_by": {k: [] for k, _, _ in RUN_GROUPS},
-                                           "whole_by": {k: [] for k, _, _ in RUN_GROUPS},
                                            "benches": [], "excluded": [], "excluded_notes": []})
             if not r.comparable:
                 s["excluded"].append(bench)
@@ -322,24 +296,21 @@ def summary(benches: dict[str, list[dict]], versions: dict) -> list[dict]:
                 s["run"].append(r.run_value / rust.run_value)
                 for k in run_groups(bench):
                     s["run_by"][k].append(r.run_value / rust.run_value)
-                if r.jit and r.whole:
-                    s["whole"].append(r.whole["median"] / rust.run_value)
-                    for k in run_groups(bench):
-                        s["whole_by"][k].append(r.whole["median"] / rust.run_value)
             if rust.compile and r.compile:  # always the cold compile
                 s["compile"].append(r.compile["median"] / rust.compile["median"])
     out = []
     for lang in sorted(per_lang, key=order_key(LANG_ORDER)):
         s = per_lang[lang]
         out.append({**s, "run_gm": geomean(s["run"]), "run_n": len(s["run"]),
-                    "whole_gm": geomean(s["whole"]), "whole_n": len(s["whole"]),
                     "compile_gm": geomean(s["compile"]), "compile_n": len(s["compile"]),
                     "vs_base_gm": geomean(s["vs_base"]), "vs_base_n": len(s["vs_base"]),
                     "group_gm": {k: geomean(v) for k, v in s["run_by"].items()},
-                    "group_n": {k: len(v) for k, v in s["run_by"].items()},
-                    "whole_group_gm": {k: geomean(v) for k, v in s["whole_by"].items()},
-                    "whole_group_n": {k: len(v) for k, v in s["whole_by"].items()}})
+                    "group_n": {k: len(v) for k, v in s["run_by"].items()}})
     return out
+
+
+def summary_name(s: dict) -> str:
+    return s["name"] + (f" ({WHOLE})" if s["kind"] == "jit" else "")
 
 
 def main_summary(summ: list[dict]) -> list[dict]:
@@ -380,8 +351,7 @@ def run_cell(r: Row) -> str:
         return r.fail_text
     if not r.run:
         return "–"
-    s = f"{fmt_time(r.run['median'])} [{fmt_time(r.run['min'])}–{fmt_time(r.run['max'])}]{r.n1}"
-    return ("≈ " + s) if r.jit and not r.no_split else s
+    return f"{fmt_time(r.run['median'])} [{fmt_time(r.run['min'])}–{fmt_time(r.run['max'])}]{r.n1}"
 
 
 def rel_cell(r: Row, fastest) -> str:
@@ -392,9 +362,9 @@ def rel_cell(r: Row, fastest) -> str:
 
 def compile_cell(r: Row) -> str:
     if r.compile:
-        return ("≈ " if r.jit else "") + fmt_time(r.compile["median"])
+        return fmt_time(r.compile["median"])
     if r.jit or r.e.get("compile"):
-        return "–"  # missing estimate, or the timed build failed
+        return "–"  # `cheby run` has no compile of its own, or the timed build failed
     return "none"  # no compile step (interpreters)
 
 
@@ -425,6 +395,15 @@ def footnotes(rows: list[Row]) -> list[str]:
     return out
 
 
+def jit_note(r: Row) -> str:
+    """The line under a benchmark's table for the JIT row."""
+    text = (f"{r.name} ({WHOLE}): `cheby run` with the program's compiled code in the cache, so "
+            "the run time includes start-up and loading that code, and no compiling.")
+    if r.check:
+        text += f" `cheby check` of the program, with std cached, took {fmt_time(r.check['median'])}."
+    return text
+
+
 def summary_md(summ: list[dict]) -> str:
     rows = []
     main = main_summary(summ)
@@ -432,12 +411,8 @@ def summary_md(summ: list[dict]) -> str:
         return [fmt_ratio(gm[k]) + (f" ({n[k]})" if n[k] else "") for k, _, _ in RUN_GROUPS]
 
     for s in main:
-        name = s["name"] + (f" ({EST})" if s["kind"] == "jit" else "")
-        rows.append([name, s["kind"]] + cells(s["group_gm"], s["group_n"])
+        rows.append([summary_name(s), s["kind"]] + cells(s["group_gm"], s["group_n"])
                     + [fmt_ratio(s["compile_gm"]) + (f" ({s['compile_n']})" if s["compile_n"] else "")])
-        if s["kind"] == "jit" and s["whole_n"]:
-            rows.append([f"{s['name']} (whole process: compile + run)", s["kind"]]
-                        + cells(s["whole_group_gm"], s["whole_group_n"]) + ["–"])
     table = md_table(["Language", "Kind"] + [f"{t} run vs Rust" for _, t, _ in RUN_GROUPS]
                      + ["Compile vs Rust (cold)"], rows, ["l", "l"] + ["r"] * (len(RUN_GROUPS) + 1))
     text = (table + "\n\nGeometric mean of the per-benchmark ratio to Rust, with the number of "
@@ -507,22 +482,7 @@ def bench_md(bench: str, entries: list[dict], versions: dict, notes: str | None)
         out += ["", line]
     for r in rows:
         if r.jit:
-            bits = []
-            if r.whole:
-                bits.append(f"the whole process at bench size took {fmt_time(r.whole['median'])}")
-            if r.check:
-                bits.append(f"`cheby check` (front end only) took {fmt_time(r.check['median'])}")
-            if r.no_split:
-                out += ["", f"{r.name}: the bench size is size 0, so there is no compile/run "
-                        "split; the run time is the whole process, JIT compile included"
-                        + (f". `cheby check` (front end only) took {fmt_time(r.check['median'])}"
-                           if r.check else "") + "."]
-            elif bits:
-                out += ["", f"{r.name}: " + "; ".join(bits) + ". Its run and compile times are "
-                        "estimates: compile = median run at size 0, run = whole process minus that."]
-            if r.run and r.run_value is not None and r.e.get("runtime_estimate", {}).get("clamped"):
-                out += ["", f"{r.name}: the bench-size run was not slower than the size-0 run, so "
-                        "the run-time estimate is clamped to 0."]
+            out += ["", jit_note(r)]
     if notes:
         out += ["", "### Notes", "", notes.strip()]
     return "\n".join(out) + "\n"
@@ -540,7 +500,7 @@ def project_sizes(entries: list[dict]) -> list[str]:
 def project_label(e: dict) -> str:
     name = e.get("name") or e["lang"]
     if e.get("kind") == "jit":
-        name += " (JIT run, estimate)"
+        name += " (JIT, cold run)"
     elif e.get("kind") == "interpreter":
         name += " (load and run)"
     if not comparable(e):
@@ -574,8 +534,7 @@ def project_md(entries: list[dict], versions: dict) -> str:
                 row.append(project_fail_text(e, v))
                 failed.append((s, v))
             else:
-                row.append((("≈ " if e.get("kind") == "jit" else "") + fmt_time(st["median"])
-                            + n1(st)) if st else "–")
+                row.append((fmt_time(st["median"]) + n1(st)) if st else "–")
             if s in warm_sizes:
                 w = ok_stats((v or {}).get("compile_warm"))
                 row.append(fmt_time(w["median"]) if w else "–")
@@ -602,8 +561,9 @@ def project_md(entries: list[dict], versions: dict) -> str:
             header.append(f"Compile (warm server), size {s}")
     text = md_table(header, rows, ["l"] + ["r"] * (len(header) - 1))
     text += ("\n\nCompiled languages: a clean build of the generated project, cold (no build "
-             "server). Cheby: a `cheby run` of the project, which compiles every module (an "
-             "estimate). Interpreters: the time to load and run everything.")
+             "server). Cheby (AOT): `cheby build` with std cached and none of the project. Cheby "
+             "(JIT): a whole `cheby run` from the same cache, which compiles every module and runs "
+             "`main`. Interpreters: the time to load and run everything.")
     if warm_sizes:
         text += (" Warm server: Scala's Bloop or the .NET build server running and warmed up by "
                  "three builds.")
@@ -614,6 +574,20 @@ def project_md(entries: list[dict], versions: dict) -> str:
     return text
 
 
+def measured_on(data: dict) -> str:
+    """The day or days of the entries, Cheby's apart when a results file mixes measuring runs."""
+    def days(entries) -> str:
+        found = sorted({e["measured_at"][:10] for e in entries if e.get("measured_at")})
+        return " to ".join(dict.fromkeys((found[0], found[-1]))) if found else ""
+
+    entries = list(data.get("entries", {}).values())
+    cheby = days(e for e in entries if e.get("lang") in CHEBY_IDS)
+    others = days(e for e in entries if e.get("lang") not in CHEBY_IDS)
+    if cheby and others and cheby != others:
+        return f"Cheby rows {cheby}, other languages {others}"
+    return cheby or others or (data.get("updated") or "?")[:10]
+
+
 def machine_md(data: dict) -> str:
     m = data.get("machine", {})
     mem = fmt_bytes(m.get("memory_bytes")) if m.get("memory_bytes") else "?"
@@ -622,7 +596,7 @@ def machine_md(data: dict) -> str:
         cores = f"{cores} ({m['perf_cores']} performance + {m.get('efficiency_cores', 0)} efficiency)"
     lines = [
         f"- Machine: {m.get('cpu', '?')}, {cores} cores, {mem}, {m.get('os', m.get('platform', '?'))}",
-        f"- Measured: {data.get('created', '?')} to {data.get('updated', '?')}"
+        f"- Measured: {measured_on(data)}"
         + (" (quick mode: 3 runs, no warm-up; smoke test only)" if data.get("quick") else ""),
         f"- Tools: {m.get('hyperfine', 'hyperfine')}, Python {m.get('python', '?')}",
     ]
@@ -638,16 +612,25 @@ def versions_md(data: dict) -> str:
     return md_table(["Language", "Version"], rows)
 
 
+def notes_caveat(data: dict) -> list[str]:
+    """A warning for a results file that mixes runs: the notes describe the older Cheby."""
+    if "other languages" not in measured_on(data):
+        return []
+    return ["The per-benchmark notes were written for the 2026-10-19 Cheby JIT numbers. Where they "
+            "quote a Cheby time or an estimate, the tables here supersede them.", ""]
+
+
 def write_md(data: dict, benches, summ, notes: dict, path: Path):
     parts = [
         "# Results", "",
         "Generated by `runner/report.py` from the measured JSON. Do not edit by hand.", "",
         machine_md(data), "",
-        "Cheby compiles and runs in one step until its milestone M3. Its compile time is "
-        "estimated as the median run at size 0 of the same program, whose JIT compiles every "
-        "function before `main` runs, and its run time as the bench-size run minus that. "
-        f"Rows marked \"{EST}\" and values marked ≈ are these estimates. See "
+        f"Cheby has two rows on the same programs. \"Cheby (AOT)\" is `cheby build`: compile "
+        "time is a build with std cached, and run time is the executable. "
+        f"\"Cheby ({WHOLE})\" is `cheby run` with the program's code in the cache: its run time "
+        "is the whole process, and it has no compile time of its own. See "
         "[CONVENTIONS.md](CONVENTIONS.md#measurement) and the README's Methodology section.", "",
+        *notes_caveat(data),
         "## Summary", "", summary_md(summ), "",
     ]
     for bench, entries in benches.items():
@@ -664,8 +647,7 @@ def update_readme(readme: Path, summ, data: dict):
     if start not in text or end not in text:
         return False
     m = data.get("machine", {})
-    body = (f"\n_Measured on {m.get('cpu', '?')}, {m.get('os', '?')}, "
-            f"{(data.get('updated') or '')[:10]}"
+    body = (f"\n_Measured on {m.get('cpu', '?')}, {m.get('os', '?')}, {measured_on(data)}"
             + (", quick mode" if data.get("quick") else "")
             + ". Full tables: [RESULTS.md](RESULTS.md); charts: "
               "[report/index.html](report/index.html)._\n\n" + summary_md(summ) + "\n")
@@ -728,10 +710,9 @@ def e(s) -> str:
 def bar_chart(bars: list[dict], title: str, unit_fmt, log: bool, ref: float | None = None,
               ref_label: str = "") -> str:
     """Horizontal bars as inline SVG. Each bar: label, value, tip, hl, nc (not comparable:
-    drawn outlined and muted), ghost (optional end value drawn as an outlined extension), note
-    (text after the value). Bar lengths are percentages, so the chart reflows to any width while
+    drawn outlined and muted), note (text after the value). Bar lengths are percentages, so the chart reflows to any width while
     the text stays at its size."""
-    vals = [b["value"] for b in bars if b.get("value")] + [b["ghost"] for b in bars if b.get("ghost")]
+    vals = [b["value"] for b in bars if b.get("value")]
     if ref:
         vals.append(ref)
     if not vals:
@@ -765,14 +746,8 @@ def bar_chart(bars: list[dict], title: str, unit_fmt, log: bool, ref: float | No
         if b.get("value"):
             w = max(pct(b["value"]), 0.4)
             parts.append(f'<rect class="bar" x="0" y="{by}" width="{w:.2f}%" height="{bar_h}" rx="3"/>')
-            end = w
-            if b.get("ghost") and b["ghost"] > b["value"]:
-                g = pct(b["ghost"])
-                parts.append(f'<rect class="ghost" x="{w:.2f}%" y="{by + 0.5}" width="{max(g - w, 0.2):.2f}%" '
-                             f'height="{bar_h - 1}" rx="3"/>')
-                end = g
             txt = unit_fmt(b["value"]) + (f"  {b['note']}" if b.get("note") else "")
-            parts.append(f'<text class="val" x="{end:.2f}%" dx="6" y="{by + 10}">{e(txt)}</text>')
+            parts.append(f'<text class="val" x="{w:.2f}%" dx="6" y="{by + 10}">{e(txt)}</text>')
         else:
             parts.append(f'<text class="val miss" x="0" y="{by + 10}">{e(b.get("note") or "–")}</text>')
         parts.append("</g>")
@@ -799,7 +774,7 @@ def html_table(header, rows, num_cols=()) -> str:
     th = "".join(f'<th class="{"n" if i in num_cols else ""}">{e(h)}</th>' for i, h in enumerate(header))
     trs = []
     for r in rows:
-        cls = ' class="hl"' if r[0].startswith("Cheby") else ""
+        cls = ' class="hl"' if r[0].startswith("Cheby") else ""  # both Cheby rows
         tds = "".join(f'<td class="{"n" if i in num_cols else ""}">{e(c)}</td>' for i, c in enumerate(r))
         trs.append(f"<tr{cls}>{tds}</tr>")
     return f'<div class="tw"><table><thead><tr>{th}</tr></thead><tbody>{"".join(trs)}</tbody></table></div>'
@@ -810,24 +785,20 @@ def run_bar(r: Row, fastest=None) -> dict:
     if r.run:
         tip_bits.append(f"run {fmt_time(r.run['median'])} (min {fmt_time(r.run['min'])}, "
                         f"max {fmt_time(r.run['max'])}){r.n1}")
-    if r.jit and r.whole and not r.no_split:
-        tip_bits.append(f"whole process {fmt_time(r.whole['median'])}, of which ≈ "
-                        f"{fmt_time(r.compile['median']) if r.compile else '?'} compile")
     if not r.comparable and r.comparable_note:
         tip_bits.append(r.comparable_note)
     if r.status != "ok" and r.known_failure:
         tip_bits.append(f"{KNOWN}: {r.known_failure}")
     if not r.run_value:
-        return {"label": r.label, "value": None, "hl": r.jit, "nc": not r.comparable,
+        return {"label": r.label, "value": None, "hl": r.hl, "nc": not r.comparable,
                 "note": r.fail_text if r.status != "ok" else "–",
                 "tip": " · ".join(tip_bits)}
-    notes = (["est."] if r.jit and not r.no_split else []) + (["n=1"] if r.n1 else [])
+    notes = ["n=1"] if r.n1 else []
     if r.comparable and fastest and r.run_value == fastest:
         notes.append("fastest")
     if not r.comparable:
         notes.append(NC)
-    return {"label": r.label, "value": r.run_value, "hl": r.jit, "nc": not r.comparable,
-            "ghost": r.whole["median"] if r.jit and r.whole and not r.no_split else None,
+    return {"label": r.label, "value": r.run_value, "hl": r.hl, "nc": not r.comparable,
             "note": " ".join(notes), "tip": " · ".join(tip_bits)}
 
 
@@ -850,29 +821,22 @@ def write_html(data: dict, benches, summ, notes: dict, path: Path):
     for k, title, _ in RUN_GROUPS:
         sb = []
         for s in sorted([s for s in summ if s["group_gm"][k]], key=lambda s: s["group_gm"][k]):
-            jit = s["kind"] == "jit"
             gm, n = s["group_gm"][k], s["group_n"][k]
-            sb.append({"label": s["name"] + (f" ({EST})" if jit else ""), "value": gm,
-                       "hl": jit, "ghost": s["whole_group_gm"][k] if jit else None,
-                       "note": benches_n(n) + (" est." if jit else ""),
+            sb.append({"label": summary_name(s), "value": gm, "hl": s["lang"] in CHEBY_IDS,
+                       "note": benches_n(n),
                        "tip": f"{s['name']}: {title} run time, geometric mean {fmt_ratio(gm)} of "
                               f"Rust over {benches_n(n)}"})
         group_bars[k] = (title, sb)
     cb = []
     for s in sorted([s for s in summ if s["compile_gm"]], key=lambda s: s["compile_gm"]):
-        jit = s["kind"] == "jit"
-        cb.append({"label": s["name"] + (f" ({EST})" if jit else ""), "value": s["compile_gm"],
-                   "hl": jit, "note": benches_n(s["compile_n"]),
+        cb.append({"label": summary_name(s), "value": s["compile_gm"],
+                   "hl": s["lang"] in CHEBY_IDS, "note": benches_n(s["compile_n"]),
                    "tip": f"{s['name']}: compile time {fmt_ratio(s['compile_gm'])} of Rust's"})
     srows = []
     for s in summ:
-        srows.append([s["name"] + (f" ({EST})" if s["kind"] == "jit" else ""), s["kind"]]
+        srows.append([summary_name(s), s["kind"]]
                      + [fmt_ratio(s["group_gm"][k]) for k, _, _ in RUN_GROUPS]
                      + [fmt_ratio(s["compile_gm"]), str(s["compile_n"])])
-        if s["kind"] == "jit" and s["whole_n"]:
-            srows.append([f"{s['name']} (whole process)", s["kind"]]
-                         + [fmt_ratio(s["whole_group_gm"][k]) for k, _, _ in RUN_GROUPS]
-                         + ["–", "–"])
     extra = []
     excl = [s for s in summ if s["excluded"]]
     if excl:
@@ -925,9 +889,8 @@ def write_html(data: dict, benches, summ, notes: dict, path: Path):
                     v = en.get("sizes", {}).get(s) or {}
                     st = ok_stats(v.get("compile"))
                     warm = ok_stats(v.get("compile_warm"))
-                    jit = en.get("kind") == "jit"
                     nc = not comparable(en)
-                    lbl = (en.get("name") or en["lang"]) + (" (JIT run, est.)" if jit else
+                    lbl = (en.get("name") or en["lang"]) + (" (JIT, cold run)" if en.get("kind") == "jit" else
                                                            " (load + run)" if en.get("kind") == "interpreter" else "")
                     if nc:
                         lbl += f" ({NC})"
@@ -946,7 +909,8 @@ def write_html(data: dict, benches, summ, notes: dict, path: Path):
                         tip += f", {v.get('files')} files, {v.get('loc')} lines"
                     if not st and en.get("known_failure"):
                         tip += f" · {en['known_failure']}"
-                    bars.append({"label": lbl, "value": st["median"] if st else None, "hl": jit,
+                    bars.append({"label": lbl, "value": st["median"] if st else None,
+                                 "hl": en["lang"] in CHEBY_IDS,
                                  "nc": nc, "note": note, "tip": tip})
                 bars.sort(key=lambda b: (bool(b.get("nc")), b["value"] is None, b["value"] or 0))
                 args = next((en["sizes"][s].get("args") for en in entries if s in en.get("sizes", {})), [])
@@ -968,17 +932,15 @@ def write_html(data: dict, benches, summ, notes: dict, path: Path):
             if comp:
                 comp.sort(key=lambda r: (not r.comparable, r.compile["median"]))
                 body.append(chart_pair(f"c-{bench}-comp", "Compile time (median, cold)", [
-                    {"label": r.label, "value": r.compile["median"], "hl": r.jit, "nc": not r.comparable,
-                     "note": " ".join(x for x in ("est." if r.jit else "",
-                                                  f"warm {fmt_time(r.compile_warm['median'])}"
-                                                  if r.compile_warm else "") if x),
+                    {"label": r.label, "value": r.compile["median"], "hl": r.hl, "nc": not r.comparable,
+                     "note": f"warm {fmt_time(r.compile_warm['median'])}" if r.compile_warm else "",
                      "tip": f"{r.label}: cold {fmt_time(r.compile['median'])}"
                             + (f", warm server {fmt_time(r.compile_warm['median'])}" if r.compile_warm else "")}
                     for r in comp], fmt_time))
             if bench == "hello_world" and any(r.startup for r in rows):
                 st = sorted([r for r in rows if r.startup], key=lambda r: (not r.comparable, r.startup["median"]))
                 body.append(chart_pair(f"c-{bench}-start", "Start-up (median run at size 0)", [
-                    {"label": r.label, "value": r.startup["median"], "hl": r.jit, "nc": not r.comparable,
+                    {"label": r.label, "value": r.startup["median"], "hl": r.hl, "nc": not r.comparable,
                      "tip": f"{r.label}: {fmt_time(r.startup['median'])}"} for r in st], fmt_time))
             has_warm = any(r.compile_warm for r in rows)
             trs = []
@@ -999,16 +961,8 @@ def write_html(data: dict, benches, summ, notes: dict, path: Path):
             for line in footnotes(rows):
                 body.append(note_html(line))
             for r in rows:
-                if r.jit and (r.whole or r.check):
-                    bits = []
-                    if r.whole:
-                        bits.append(f"whole process at bench size {fmt_time(r.whole['median'])}")
-                    if r.compile:
-                        bits.append(f"estimated compile {fmt_time(r.compile['median'])} (median run at size 0)")
-                    if r.check:
-                        bits.append(f"<code>cheby check</code> {fmt_time(r.check['median'])}")
-                    body.append(f'<p class="note"><strong>{e(r.name)}:</strong> ' + "; ".join(
-                        b if "<code>" in b else e(b) for b in bits) + ".</p>")
+                if r.jit:
+                    body.append('<div class="note">' + mini_markdown(jit_note(r)) + "</div>")
         if notes.get(bench):
             body.append('<div class="notes">' + mini_markdown(notes[bench]) + "</div>")
         body.append("</section>")
@@ -1022,10 +976,11 @@ def write_html(data: dict, benches, summ, notes: dict, path: Path):
     m = data.get("machine", {})
     meta = (f"{e(m.get('cpu', '?'))} · {e(m.get('cores', '?'))} cores · "
             f"{e(fmt_bytes(m.get('memory_bytes')))} · {e(m.get('os', '?'))} · "
-            f"{e((data.get('updated') or '')[:10])}"
+            f"{e(measured_on(data))}"
             + (" · <strong>quick mode (smoke test)</strong>" if data.get("quick") else ""))
     page = PAGE.replace("{{META}}", meta).replace("{{NAV}}", " ".join(nav)) \
-               .replace("{{SECTIONS}}", "\n".join(sections)).replace("{{EST}}", e(EST))
+               .replace("{{SECTIONS}}", "\n".join(sections)) \
+               .replace("{{CAVEAT}}", mini_markdown(notes_caveat(data)[0]) if notes_caveat(data) else "")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(page)
 
@@ -1096,7 +1051,6 @@ svg.chart .bar { fill: var(--bar); }
 svg.chart .row.hl .bar { fill: var(--hl); }
 svg.chart .row.nc .bar { fill: none; stroke: var(--bar); stroke-width: 1; stroke-dasharray: 3 2; }
 svg.chart .row.nc .lbl { fill: var(--muted); font-style: italic; }
-svg.chart .ghost { fill: none; stroke: var(--hl); stroke-width: 1; stroke-dasharray: none; }
 svg.chart .hit { fill: transparent; }
 svg.chart .row:hover .hit { fill: var(--hover); }
 svg.chart .ref { stroke: var(--axis); stroke-width: 1; }
@@ -1117,12 +1071,10 @@ tr.hl td:first-child { font-weight: 700; }
 <main>
 <h1>Cheby compared</h1>
 <p class="meta">{{META}}</p>
-<div class="callout"><strong>Cheby numbers are estimates.</strong> Cheby only has a JIT until its
-milestone M3, so compile and run happen in one process. Compile time is estimated as the median
-run at size 0 of the same program (the JIT compiles every function <code>main</code> reaches before
-it runs), and run time as the bench-size run minus that. Rows tagged “{{EST}}” use this split; in
-run-time charts, the outlined part of Cheby's bar is the estimated compile time, so the full
-length is the whole process.</div>
+<div class="callout"><strong>Cheby has two rows, on the same programs.</strong> Cheby (AOT) is
+<code>cheby build</code>: its compile time is a build with std cached, and its run time is the
+executable. Cheby (JIT, whole process) is <code>cheby run</code> with the program's code in the
+cache: its run time is the whole process, and it has no compile time of its own.{{CAVEAT}}</div>
 <nav>{{NAV}}</nav>
 {{SECTIONS}}
 <p class="meta">Generated by runner/report.py. Hover a bar for details; each chart switches

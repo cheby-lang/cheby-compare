@@ -116,23 +116,21 @@ sum: 0
 
 ## Sizes
 
-| Size    | `n`     | Notes                                                                                                    |
-| ------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `zero`  | 0       | no batch                                                                                                 |
-| `test`  | 2,500   | three batches, the last one partial                                                                      |
-| `bench` | 100,000 | 100 batches; Rust about 1.2 s (OS threads); Cheby about 0.11 s in total, about 0.10 s estimated run time |
+| Size    | `n`     | Notes                                                                   |
+| ------- | ------- | ----------------------------------------------------------------------- |
+| `zero`  | 0       | no batch                                                                |
+| `test`  | 2,500   | three batches, the last one partial                                     |
+| `bench` | 100,000 | 100 batches; Rust about 1.2 s (OS threads); Cheby about 0.11 s in total |
 
-Cheby's split is an estimate (see CONVENTIONS.md, "Measurement"): its run time is the bench run minus
-a size-0 run of the same program, about 12 ms of start-up and eager JIT. At about 0.1 s of run time,
-noise in either run is a large relative error, so read Cheby's row here as approximate. `n` stays at
-100,000 because a larger `n` pushes Rust's OS threads past 2 s.
+At about 0.1 s of run time, noise is a large relative error, so read Cheby's rows here as
+approximate. `n` stays at 100,000 because a larger `n` pushes Rust's OS threads past 2 s.
 
 ## Concurrency primitive per language
 
 Use exactly this primitive. "Batch" means the 1,000 tasks of one `spawn_and_join` call.
 
 | Language            | Spawn                                                                                               | Join                                                 |
-| ------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| ------- | ------- | ----------------------------------------------------------------------- |
 | Cheby               | `fiber::spawn(scope, fn() { work(i) })` in a `fiber::scope`                                         | `fiber::join`, then the scope ends                   |
 | Rust                | `scope.spawn(move \|\| work(i))` in a `std::thread::scope`                                          | `handle.join()`                                      |
 | `rust-tokio`        | `tokio::spawn(async move { work(i) })`, `#[tokio::main]`                                            | `handle.await` on each `JoinHandle`                  |

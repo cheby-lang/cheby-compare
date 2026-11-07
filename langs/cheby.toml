@@ -1,14 +1,15 @@
 id = "cheby"
 name = "Cheby"
-kind = "jit"                          # JIT only until M3: compile and run are one step
-version = "echo \"$({cheby} --version) ($(git -C \"$(dirname {cheby})/../..\" rev-parse --short HEAD 2>/dev/null || echo unknown))\""
+kind = "jit"                          # `cheby run`: compile, if the cache misses, and run in one step
+version = "echo \"$({cheby} --version) ($(git -C \"$(dirname {cheby})/../..\" describe --always --dirty --abbrev=8 2>/dev/null || echo unknown))\""
 comment = "//"
 extensions = [".cheby"]
-env = {}
+env = { CHEBY_CACHE = "{lang_build}/cache" }
 
-# No separate build step: `cheby run` type-checks, JIT-compiles every function and runs `main`.
-# The runner estimates the compile part as the median run at size 0 (see CONVENTIONS.md).
+# No separate build step: `cheby run` loads the program's cached code, or compiles it first. Every
+# timed run has a warm cache, so its time is the whole process without compiling. `clean` only
+# prepares what must start from a cold cache: `check`, and the `compile_large` runs.
 build = ""
-clean = ""
+clean = "sh {root}/runner/cheby-cache.sh {cheby} {lang_build}/cache"
 run = "{cheby} run -- {args}"
-check = "{cheby} check"               # front-end time, reported next to the estimates
+check = "{cheby} check"               # front-end time of the program, with std cached

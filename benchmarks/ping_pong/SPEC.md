@@ -223,7 +223,7 @@ Calibration on one machine, total wall time per run (hyperfine medians, approxim
 | Cheby fibers                                   | ~12 ms | ~80 ms  | ~70 ms (~0.23 µs a round), an estimate |
 | Rust threads                                   | ~3 ms  | ~0.7 s  | ~0.7 s (~2.3 µs a round)               |
 
-Cheby's `zero` time is its JIT compile of the whole program plus start-up, so its bench-minus-zero
-figure is an estimate of run time (see CONVENTIONS.md). On a loaded machine, Cheby's bench total
+Cheby's figures are from before AOT output, when `zero` was its JIT compile of the whole program
+plus start-up. On a loaded machine, Cheby's bench total
 ranged from about 0.08 s to 0.18 s. CPython with asyncio takes several seconds, and its time
 varies by several times with machine load (see Purpose).
