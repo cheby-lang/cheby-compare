@@ -1,38 +1,28 @@
-- **Cheby finishes in 9.9 ms, 10th of 20 and 9.37× Rust.** All nine AOT languages take 1.1 to 1.7 ms
-  (OCaml 1.5 ms, Go 1.7 ms). Cheby is faster than every VM and interpreter: Python takes 18 ms, Java
-  22 ms, and the BEAM languages 87 to 105 ms (Gleam, Erlang, Elixir), 8.80× to 10.6× Cheby's time.
-  Its peak RSS is 18.9 MB, against 1.6 to 4.2 MB for the AOT executables and about 71 MB for the
-  BEAM languages.
-- **Cheby's compile and start-up columns are the same measurement.** There is no build step before
-  M3, so the ≈ 9.1 ms "compile" is the size-0 run of the program: parse, type-check, JIT-compile and
-  run, on every start. It is the lowest compile time in the table, 0.10× Rust's 92 ms, because Cheby
-  writes no executable, links nothing and generates unoptimised code (Cranelift with its optimiser
-  off, D-259). Read it as the time from source to output, not as a build time.
-- **Most of the start-up is checking the standard library, not the program.** `cheby check` alone
-  takes 8.0 ms, 88% of the 9.1 ms start-up and 81% of the 9.9 ms run. About 2 to 3 ms of that is
-  launching and exiting the process (`cheby --version` in a local test), so parsing and checking
-  take roughly 5 to 6 ms, almost all of it std. Every module of a package depends implicitly on the
-  std home module of each prelude type (D-447): `std::int`, `std::float`, `std::string`,
-  `std::list`, `std::map`, `std::set`, `std::bytes`, the sized integer modules and others. With
-  `std::io` and `std::ops`, this run checks 23 std modules (counted from a `CHEBY_DUMP_DIR` dump).
-  Their sources are embedded in the binary, so every run parses and checks them again (D-450). In a
-  local test, an empty `main` with no import checked nearly as fast as this program. This is the
-  current implementation: M3 is to ship std precompiled (D-256).
-- **Code generation is a small part of it.** The JIT compiles only what `main` reaches (D-510):
-  `main`, `io::println` and a few `std::io` functions, shims and entry trampolines, 15 functions in
-  all. Code generation plus starting and stopping the runtime is what separates `cheby check` from a
-  run: 1.1 ms against the start-up series and 1.9 ms against the run series, so about 1 to 2 ms.
-- **Most of the memory is front-end work on std, not the binary.** In a local test, launching
-  `cheby` and exiting at once (`cheby --version`) peaked at about 3.4 MB, and took a little longer
-  than Rust's whole hello world. `cheby check`, which parses and checks the std modules, peaks at
-  15.5 MB, and code generation plus the runtime add the rest of the 18.9 MB.
-- **M3 changes both columns.** `cheby build` will write an executable, so Cheby's compile becomes a
-  real build time and its start-up no longer includes the front end. `cheby run` is to load cached
-  machine code per module and compile lazily (D-254).
-- **Cheby's run and start-up numbers are two series of the same command.** They differ by 0.8 ms
-  (9.9 ms against 9.1 ms) for reasons outside the program: the run series was measured first and
-  scattered more. So the run-time estimate, run minus start-up, means nothing here, and no split
-  finer than about 1 ms can be read from this data.
+- **Cheby's executable finishes in 1.5 ms, 6th of 21, among the other AOT languages.** They take 1.1
+  ms (Rust) to 1.7 ms (Go). `cheby run` takes 6.1 ms as a whole process, 11th of 21. That is slower
+  than every AOT executable and faster than every VM and interpreter: Python takes 18 ms, Java 22
+  ms, and the BEAM languages 87 ms to 105 ms (Gleam, Erlang, Elixir).
+- **The executable peaks at 3.5 MB, and `cheby run` at 16.4 MB.** The other AOT executables peak at
+  1.6 MB to 4.2 MB, and the BEAM languages at about 71 MB. The 16.4 MB is the floor of every `cheby
+  run` process, which carries the compiler and the JIT. The other benchmarks' notes cite it as that
+  floor.
+- **`cheby build` takes 55 ms, the second-lowest compile time in the table.** Only TypeScript's
+  `tsc` (35 ms) is lower, and Rust takes 92 ms. The build starts from a cache that holds the
+  standard library, as other languages keep theirs compiled. It compiles the program and links it,
+  and the link is most of the time (README, "Cheby's two rows"). The debug profile is the only one
+  until M6, so the code is unoptimised. The executable is 1.2 MB, against 460 KB for Rust and 2.4 MB
+  for Go.
+- **`cheby run` spends most of its 6 ms before the program starts.** In a local test with a warm
+  cache, `cheby --version` took 1.8 ms, `cheby check` of this program 4.9 ms, and `cheby run` 5.8
+  ms. So launching the process costs about 2 ms, the front end about 3 ms, and loading the cached
+  code and running it about 1 ms. `cheby run` has no compile column: with the program's code in the
+  cache it compiles nothing.
+- **The October JIT took 9.9 ms, most of it checking the standard library.** Every run parsed and
+  checked the 23 std modules this program pulls in. Since M3, std comes from the build cache, and
+  `cheby build` removes the front end from start-up.
+- **The run and start-up columns are two series of the same command.** For the executable they read
+  1.5 ms and 1.7 ms. The difference is noise, so no split finer than a few tenths of a millisecond
+  can be read from this data.
 - **Zig's 5.70 s compile includes its standard library.** Zig builds the program and its standard
   library as one optimised unit and cannot reuse a compiled std (CONVENTIONS.md). Its executable
   runs in 1.3 ms (start-up 1.4 ms), like the other AOT languages.

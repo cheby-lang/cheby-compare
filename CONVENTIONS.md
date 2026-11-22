@@ -1,13 +1,13 @@
 # Conventions
 
-The rules every implementation, spec and tool in this repository follows. They exist so that the
-numbers compare like with like. When a rule and an implementation disagree, the implementation is
-wrong.
+This file holds the rules that every implementation, spec and tool in this repository follows. They
+exist so that the numbers compare like with like. When a rule and an implementation disagree, the
+implementation is wrong.
 
 ## Languages
 
-Twenty languages, each with an id used in paths and results. Cheby has two ids, one per way of
-running the same programs:
+There are twenty languages, each with an id used in paths and results. Cheby has two ids, one per
+way of running the same programs:
 
 | Id           | Language   | Kind        | Toolchain (2026-10)               |
 | ------------ | ---------- | ----------- | --------------------------------- |
@@ -140,15 +140,18 @@ artifact = "{build}/release/main"    # optional, for the artifact size
 ```
 
 `build` empty means the language has no compile step (Python, Ruby). `clean` removes the program's
-own outputs but keeps fetched and compiled third-party dependencies, so the compile time is the
-time to compile this program, not its libraries. The same holds for the standard library: where a
-toolchain can reuse a compiled standard library (Go's cache, Koka's and Nim's object caches,
-Swift's module cache, the precompiled libraries of Rust, OCaml and the BEAM), `clean` keeps it,
-after an untimed warm-up build if needed. Zig and Odin compile the program and its standard
-library as one unit and cannot reuse it, so their compile time includes it. Cheby's `clean` resets
-its build cache to one that holds std, because its cache would otherwise hold the program's code
-too. `impl_dir = "<id>"` makes an id build another id's sources, as `cheby-aot` does `cheby`'s, so
-no `benchmarks/<bench>/<id>/` exists for it. An implementation may override any key, and add
+own outputs but keeps fetched and compiled third-party dependencies, so the compile time is the time
+to compile this program, not its libraries.
+
+The same holds for the standard library. Where a toolchain can reuse a compiled one (Go's cache,
+Koka's and Nim's object caches, Swift's module cache, the precompiled libraries of Rust, OCaml and
+the BEAM), `clean` keeps it, after an untimed warm-up build if needed. Zig and Odin compile the
+program and its standard library as one unit and cannot reuse it, so their compile time includes it.
+Cheby's `clean` resets its build cache to one that holds std, because its cache would otherwise hold
+the program's code too.
+
+`impl_dir = "<id>"` makes an id build another id's sources, as `cheby-aot` does `cheby`'s, so no
+`benchmarks/<bench>/<id>/` exists for it. An implementation may override any key, and add
 `libs = [...]` and `notes = "..."`, in `benchmarks/<bench>/<lang>/impl.toml`.
 
 ## `sizes.toml`
@@ -177,9 +180,9 @@ that read a generated file. `test` is small enough to check every language in ab
   number, since Cheby and most languages have no server.
 - **Peak memory** is one run under `/usr/bin/time -l`, its maximum resident set size.
 - **Artifact size** is the size of `artifact`, when the config names one.
-- **Lines of code** count non-blank lines of the implementation's sources that are not only a comment.
-  Inline tests (Cheby `test` blocks, Zig `test` blocks, Rust `#[cfg(test)]` modules) and docstrings
-  (Python docstrings, Elixir `@doc` and `@moduledoc`) are not counted.
+- **Lines of code** count non-blank lines of the implementation's sources that are not only a
+  comment. Inline tests (Cheby `test` blocks, Zig `test` blocks, Rust `#[cfg(test)]` modules) and
+  docstrings (Python docstrings, Elixir `@doc` and `@moduledoc`) are not counted.
 - **Start-up** is the median run time at size 0.
 - **Output** is checked against `expected/` before anything is timed. A wrong output is never timed.
 - **Cheby** has two rows on the same programs. `cheby-aot` is `cheby build`, measured like any AOT

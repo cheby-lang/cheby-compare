@@ -613,11 +613,11 @@ def versions_md(data: dict) -> str:
 
 
 def notes_caveat(data: dict) -> list[str]:
-    """A warning for a results file that mixes runs: the notes describe the older Cheby."""
+    """A warning for a results file that mixes runs: the notes quote the Cheby rows of one run."""
     if "other languages" not in measured_on(data):
         return []
-    return ["The per-benchmark notes were written for the 2026-10-19 Cheby JIT numbers. Where they "
-            "quote a Cheby time or an estimate, the tables here supersede them.", ""]
+    return ["The per-benchmark notes were written for the Cheby rows of 2026-11-22. Where a table "
+            "here is newer and differs from them, the table is right.", ""]
 
 
 def write_md(data: dict, benches, summ, notes: dict, path: Path):

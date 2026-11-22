@@ -44,20 +44,20 @@ writing implementations, and, when it needs more than its Homebrew formula, `set
 
 **Library variants.** For the three concurrency benchmarks (`ping_pong`, `spawn_many` and
 `prime_sieve`), a well-known library changes the picture for some languages, so they get a second
-row: tokio for Rust, core.async for Clojure and Eio for OCaml. A variant appears only in those
-three benchmarks. The report labels it with its library, for example "Rust (tokio)", and gives it
-its own summary table, because a geometric mean over three benchmarks does not compare with the
-per-language means over all of them. Gleam has no concurrency in its standard library, so its
-main row uses `gleam_erlang` and `gleam_otp`, and it has no variant.
+row: tokio for Rust, core.async for Clojure and Eio for OCaml. A variant appears only in those three
+benchmarks. The report labels it with its library, for example "Rust (tokio)". The variants get
+their own summary table, because a geometric mean over three benchmarks does not compare with the
+per-language means over all of them. Gleam has no concurrency in its standard library, so its main
+row uses `gleam_erlang` and `gleam_otp`, and it has no variant.
 
 ### Koka
 
-- **`compile_large` at the bench size is a known build failure.** Koka's generated C header for
-  each module includes the header of every module it imports, so the chain of 200 modules nests
-  200 headers deep, and Apple clang stops at its fixed include-depth limit of 200 ("#include
-  nested too deeply"; no flag raises it). Sizes `zero` and `test` build, and so do 199 modules.
-  The report shows the reason, from `known_failure` in the implementation's `impl.toml`, instead
-  of the raw error.
+- **`compile_large` at the bench size is a known build failure.** Koka's generated C header for each
+  module includes the header of every module it imports, so the chain of 200 modules nests 200
+  headers deep. Apple clang stops at its fixed include-depth limit of 200 ("#include nested too
+  deeply"; no flag raises it). Sizes `zero` and `test` build, and so do 199 modules. The report
+  shows the reason, from `known_failure` in the implementation's `impl.toml`, instead of the raw
+  error.
 - **The three concurrency rows are measured but not comparable.** Koka's `std/async` schedules
   strands cooperatively on one thread and has no dynamic spawn, and `spawn_many` writes its own
   cooperative scheduler as an effect handler, as its SPEC says. The rows carry
@@ -227,93 +227,103 @@ row, and reported as front-end time.
 
 ## Cheby's strengths and weaknesses
 
-_This section analyses the 2026-10-19 numbers of the JIT, before AOT output. The tables in
-Results are newer, and where they differ, they are right._
+_This section analyses the Cheby rows of 2026-11-22, measured at commit `7a586d82`. The other
+languages' rows are from 2026-10-19 on the same machine._
 
-On run time, Cheby is 14.5× slower than Rust on the CPU group (5 benchmarks), 39.5× on the data
-group (3) and 21.1× on both together (8). These are the Summary's geometric means. On CPU, only
-Ruby (17.0×) and Python (38.2×) are slower. On data, Cheby is the slowest row, behind Gleam
-(27.6×) and Erlang (19.9×). The per-benchmark notes trace most of the gap to the current compiler,
-runtime and standard library, and a smaller part to the language's design.
+On run time, Cheby's executables are 9.68× slower than Rust on the CPU group (5 benchmarks), 13.1×
+on the data group (3) and 10.8× on both together (8). These are the Summary's geometric means.
+`cheby run` is within a few percent of them (9.62×, 13.5× and 10.9×), because it loads the same
+compiled code. On CPU, Gleam (10.1×), Ruby (17.0×) and Python (38.2×) are slower. On data, Cheby is
+level with Clojure (13.0×) and ahead of Koka (17.8×), Elixir (18.7×), Erlang (19.9×) and Gleam
+(27.6×). The per-benchmark notes trace most of the gap to the current compiler, runtime and standard
+library, and a smaller part to the language's design.
 
-On the concurrency group, Cheby needs 0.08× the time of Rust's standard row, which uses OS
-threads. Go (0.05×) and the Rust tokio variant (0.06×) are ahead of it. Against tokio alone,
-Cheby needs 1.34× the time: 1.39× on `ping_pong`, 3.05× on `spawn_many` and 0.57× on
-`prime_sieve`. Cheby's compile time is 0.06× Rust's cold build over 12 benchmarks, but that
-number is a size-0 `cheby run`: it writes no file, links nothing and generates unoptimised code.
-As a whole process, `hello_world` takes 9.9 ms, against 1.1 ms to 1.7 ms for the AOT languages.
+The October JIT stood at 14.5×, 39.5× and 21.1×. Four benchmarks moved most: `json_roundtrip` from
+49.1 s to 3.76 s, `spectral_norm` from 52.6 s to 21.5 s, `nbody` from 44.0 s to 27.2 s and
+`word_freq` from 3.58 s to 2.07 s.
+
+On the concurrency group, Cheby's executables need 0.07× the time of Rust's standard row, which uses
+OS threads. Go (0.05×) and the Rust tokio variant (0.06×) are ahead. Against tokio alone, Cheby
+needs 1.18× the time: 1.11× on `ping_pong`, 2.62× on `spawn_many` and 0.56× on `prime_sieve`.
+
+`cheby build` takes 0.34× the time of Rust's cold build over 12 benchmarks. Only TypeScript (0.18×)
+is lower. The build is unoptimised and starts with the standard library already compiled.
 
 Strengths:
 
-- **Cheap fibers and channels.** `ping_pong` runs in ≈ 71 ms, second of the 19 comparable
-  languages behind Go (63 ms), and 9.51× faster than Rust's OS threads. The rust-tokio variant
-  (51 ms) is faster too. A handoff stays on one worker thread and never enters the kernel: the
-  whole run spent 8.3 ms in the kernel, about the 8.1 ms of a size-0 run. `prime_sieve` (≈ 20 ms)
-  ties Go, and `spawn_many` (≈ 88 ms) is fifth of 19, in the lightweight-task band, with the
-  rust-tokio and OCaml Eio variants also ahead. M:N fibers are a design choice. The two
-  allocations per message that remain are current implementation.
-- **Short time from source to output.** `hello_world` (9.9 ms) beats every VM and interpreter:
-  Python takes 18 ms, Java 22 ms and the BEAM languages 87 ms to 105 ms. `compile_large` runs a
-  200-module project in ≈ 242 ms, 4th of 19, while Rust's clean release build takes 6.79× as long.
-  This compares unoptimised in-memory code against release builds, and M3 changes both columns.
-- **Allocation-heavy code runs near the malloc/free languages.** `binary_trees` takes 1.34× Rust,
-  just behind C++ (1.12 s) and Odin (1.26 s) and ahead of Swift (1.66 s). There is one heap object
-  per node, freed by its count (D-005), and `check` borrows its tree, so the walk touches no
-  counts.
-- **Unique values are updated in place.** `fannkuch_redux`'s `list::set` updates in place almost
-  every time. In `lru_cache` the counters report no copied map update, and `word_freq`'s
-  `map::upsert` copies no path. This is Perceus reuse, part of the language's design (D-005,
-  spec §9.3).
-- **Lower peak memory than the BEAM and the JVM.** `lru_cache` peaks at 39.8 MB, against about
-  320 MB for Erlang and Elixir and 2.1 GB for Clojure. `word_freq` peaks at 257 MB, against 1.8 GB
-  to 2.8 GB for the BEAM rows. Every `cheby run` has an 18.9 MB floor, `hello_world`'s peak, most
-  of it the front end checking std, so Cheby stays above Rust everywhere.
+- **Cheap fibers and channels.** `ping_pong` runs in 57 ms, second of the 23 comparable rows. Only
+  the rust-tokio variant (51 ms) is faster. Go takes 63 ms and Rust's OS threads 677 ms. A handoff
+  stays on one worker thread and never enters the kernel: the whole run spent 1 ms there.
+  `prime_sieve` (19 ms) is the fastest row, level with Go within noise. `spawn_many` (76 ms) is
+  seventh of 23. M:N fibers are a design choice. The one allocation per message that remains is
+  current implementation.
+- **Fast builds and a fast start.** `cheby build` compiles `hello_world` in 55 ms and the 200-module
+  `compile_large` project in 716 ms, where Rust's clean release build takes 2.29× as long. This
+  compares unoptimised code against release builds: Cheby's release profile comes with M6. The
+  executable starts in 1.5 ms, like the other AOT languages (1.1 ms to 1.7 ms). `cheby run` prints
+  `hello_world` in 6.1 ms, faster than every VM and interpreter: Python takes 18 ms, Java 22 ms and
+  the BEAM languages 87 ms to 105 ms.
+- **Allocation-heavy code runs near the malloc/free languages.** `binary_trees` takes 1.07× Rust,
+  ahead of C++ (1.12 s), Odin (1.26 s) and Swift (1.66 s). There is one heap object per node, freed
+  by its count (D-005), and `check` borrows its tree, so the walk touches no counts.
+- **Unique values are updated in place.** In `fannkuch_redux`, 137.7 million `list::set` calls
+  update in place and 3.27 million copy. In `nbody` every record update reuses its record: 770
+  million reuses and no miss. In `lru_cache` and `word_freq` the counters report no copied map
+  update. This is Perceus reuse, part of the language's design (D-005, spec §9.3).
+- **Low peak memory.** A Cheby executable's floor is 3.5 MB (`hello_world`), inside the 1.6 MB to
+  4.2 MB of the other AOT languages. `lru_cache` peaks at 18.2 MB, against about 320 MB for Erlang
+  and Elixir and 2.1 GB for Clojure. `word_freq` peaks at 230 MB, against 1.8 GB to 2.8 GB for the
+  BEAM rows. `cheby run` adds the compiler and the JIT: its floor is 16.4 MB.
 
 Weaknesses:
 
-- **`List` is the only general sequence type, and list code pays for it.** `fannkuch_redux` is last at 29.2×
-  Rust, `spectral_norm` is 19th at 65.5× and `nbody` 19th at 85.6×. No arrays and no mutation are
-  design (D-017, D-039). Most of the cost is current implementation: each `[x, ..rest]` step is
-  three out-of-line runtime calls, every `list::get` allocates a `Some`, and a record read from a
-  list is often still shared, so its update cannot reuse it. `nbody` over a hand-made cons type ran
-  several times faster in a scratch test.
-- **Float code pays for the calling convention.** A function returns one uniform word (D-453), so
-  a returned `Float` is boxed. `float::from_int` allocates on every call, and carrying
-  `spectral_norm`'s indices as `Float` cut its run time by more than half in a scratch test. A
-  local-function loop is several times slower (the `mandelbrot` SPEC), so the programs use
-  top-level loops. Even then, `mandelbrot` (2.97× Rust) runs a full call per iteration through the
-  JIT's indirection slot (D-015, D-043). The notes class the boxed `from_int` result and the call
-  overhead as current implementation.
-- **`std::json` is slow.** `json_roundtrip` is last at 127× Rust, 3.96× behind Gleam. The parser,
-  written in Cheby, turns the text into a list of code points and walks it with list patterns, and
-  the decoders and the writer allocate more on the success path. This is the current standard
-  library, not a limit of the language.
-- **Persistent maps cost more work per operation, and std lacks some shortcuts.** `lru_cache` is
-  47× Rust, level with Erlang and Elixir, while Koka is 2.23× faster. With no move-to-end, a hit
-  is three hash lookups, a hash remove, a hash insert and two tree updates. The tree compares keys
-  through a dictionary until specialization, planned for M6 (D-251). `word_freq` (10.3×) splits by
-  hand, since `std::string` has no whitespace splitter, and copies most of the text twice. No
-  mutable hash table or linked list is design (D-017). The rest is current std and runtime.
+- **`List` is the only general sequence type, and list code pays for it.** `fannkuch_redux` is last
+  at 24× Rust, `spectral_norm` is 18th of 21 at 27× and `nbody` 18th at 53×. No arrays and no
+  mutation are design (D-017, D-039). The rest is current implementation. Every `list::get`
+  allocates a `Some`, and every indexed read or write is a runtime call into the tree. Building a
+  list with `[x, ..xs]` allocates tree nodes, which costs a third of `spawn_many`'s run. One cost
+  has gone since October: a `[x, ..rest]` pattern step was three runtime calls, and is now inline or
+  one call (D-1757 to D-1760).
+- **Float code pays for the calling convention.** A function returns one uniform word (D-453), so a
+  returned `Float` is boxed. `float::from_int` allocates on every call: `spectral_norm` makes 1.21
+  billion allocations, one per matrix entry. A local-function loop is several times slower (the
+  `mandelbrot` SPEC), so the programs use top-level loops. Even then, `mandelbrot` (2.34× Rust) runs
+  a full call per iteration through the function's slot (D-015, D-043). The notes class the boxed
+  `from_int` result and the call overhead as current implementation.
 - **The runtime's own allocation and free path is heavy.** In `binary_trees`, Koka, also Perceus
-  over mimalloc, is 3.35× faster. Most of Cheby's samples are in the runtime's per-object
-  bookkeeping, not in mimalloc. That is current implementation.
-- **Start-up is mostly checking the standard library.** `cheby check` takes 8.0 ms of
-  `hello_world`'s 9.1 ms start-up. About 2 ms to 3 ms of that is process launch, and nearly all
-  the rest is parsing and checking the 23 std modules this program pulls in, most of them implicit
-  dependencies of every module (D-447). M3 is to ship
-  std precompiled (D-256), and `cheby build` will remove the front end from start-up.
+  over mimalloc, is 2.67× faster. The profile puts 44% of Cheby's samples in the runtime's
+  allocation and free code and 6% in mimalloc. The same code takes 35% to 42% of `nbody`,
+  `spectral_norm` and `json_roundtrip`. That is current implementation.
+- **Persistent maps cost more work per operation, and std lacks some shortcuts.** `lru_cache` is 39×
+  Rust, among the other rows that keep two persistent maps, while Koka is 1.84× faster. With no
+  move-to-end, a hit is four hash operations and two tree updates. The tree is Cheby code and takes
+  most of the run. It compares keys through a dictionary until specialization, planned for M6
+  (D-251). `word_freq` (5.9× Rust) copies most of the text twice when it splits, and calls back into
+  a closure for every word. No mutable hash table or linked list is design (D-017). The rest is
+  current std and runtime.
+- **`std::json` is ten times slower than Rust's library.** `json_roundtrip` is 17th of 21 at 9.7×
+  Rust, behind OCaml (Cheby 1.09×) and ahead of Erlang. It was last in October, at 127×: the parser
+  now scans bytes where it walked a list of code points. Allocation (35% of samples) and compiled
+  Cheby code (33%) share the time that is left. This is the current standard library, not a limit of
+  the language.
+- **A module constant is slow to compile.** Each constant is evaluated in a JIT module of its own
+  and cached on its own (D-977 to D-979), and every use reads it through a slot. In `compile_large`,
+  replacing the 200 modules' one-literal constant with the literal cut a cold `cheby build` from 757
+  ms to 346 ms.
 
 Caveats:
 
-- Cheby's compile and run times are an estimated split (see above). It is negligible for the long
-  benchmarks and means nothing for `hello_world`. On the concurrency rows it matters: the
-  subtracted size-0 run is 11% (`spawn_many`) to 36% (`prime_sieve`) of the whole process.
-- The concurrency group compares task runtimes. Rust's standard row uses OS threads, so the 0.08×
+- Cheby has two rows on the same programs. This section quotes the executable unless it names `cheby
+  run`. `cheby run`'s time is a whole process with the program's code already in the cache, so that
+  row has no compile time.
+- The concurrency group compares task runtimes. Rust's standard row uses OS threads, so the 0.07×
   ratio measures Cheby's fibers against kernel threads. The Rust tokio variant is the closer
   comparison. The Summary never averages run time over all groups for this reason.
-- Each row is one session on one machine. Runs over 5 s get 3 timings, which covers Cheby's
-  `nbody`, `spectral_norm`, `json_roundtrip` and `lru_cache`. Python's `spectral_norm`, over 60 s,
-  was timed once (n=1).
+- Each row is one session on one machine. Runs over 5 s get 3 timings, which covers Cheby's `nbody`,
+  `spectral_norm` and `lru_cache`. Python's `spectral_norm`, over 60 s, was timed once (n=1).
+- The profile shares in the notes come from one sampling run of each executable at the bench size.
+  The three concurrency runs are too short to sample, so their notes cite Cheby's own longer fiber
+  benchmarks.
 - Koka's concurrency rows are not comparable and are left out of the means: its `std/async` is
   cooperative, single-threaded and has no dynamic spawn.
 - Some rows do different work: the JSON libraries differ, Koka writes its own parser, and the
@@ -322,12 +332,12 @@ Caveats:
 ## Results
 
 <!-- results:start -->
-_Measured on Apple M3, macOS 27.0 (26A428), Cheby rows 2026-11-07, other languages 2026-10-19. Full tables: [RESULTS.md](RESULTS.md); charts: [report/index.html](report/index.html)._
+_Measured on Apple M3, macOS 27.0 (26A428), Cheby rows 2026-11-22, other languages 2026-10-19. Full tables: [RESULTS.md](RESULTS.md); charts: [report/index.html](report/index.html)._
 
 | Language                   | Kind        | CPU run vs Rust | Data run vs Rust | Concurrency run vs Rust | CPU + data run vs Rust | Compile vs Rust (cold) |
 | -------------------------- | ----------- | --------------: | ---------------: | ----------------------: | ---------------------: | ---------------------: |
-| Cheby (JIT, whole process) | jit         |       10.7× (5) |        18.3× (3) |               0.09× (3) |              13.1× (8) |                      – |
-| Cheby (AOT)                | aot         |       10.5× (5) |        17.6× (3) |               0.07× (3) |              12.7× (8) |             0.35× (12) |
+| Cheby (JIT, whole process) | jit         |       9.62× (5) |        13.5× (3) |               0.08× (3) |              10.9× (8) |                      – |
+| Cheby (AOT)                | aot         |       9.68× (5) |        13.1× (3) |               0.07× (3) |              10.8× (8) |             0.34× (12) |
 | Gleam                      | beam        |       10.1× (5) |        27.6× (3) |               0.35× (3) |              14.7× (8) |             1.05× (12) |
 | Rust                       | aot         |       1.00× (5) |        1.00× (3) |               1.00× (3) |              1.00× (8) |             1.00× (12) |
 | Go                         | aot         |       1.08× (5) |        1.60× (3) |               0.05× (3) |              1.25× (8) |             1.22× (12) |
