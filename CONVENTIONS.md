@@ -185,10 +185,10 @@ that read a generated file. `test` is small enough to check every language in ab
   docstrings (Python docstrings, Elixir `@doc` and `@moduledoc`) are not counted.
 - **Start-up** is the median run time at size 0.
 - **Output** is checked against `expected/` before anything is timed. A wrong output is never timed.
-- **Cheby** has two rows on the same programs. `cheby-aot` is `cheby build`, measured like any AOT
-  language, from a cache that holds std and none of the program. `cheby` is `cheby run` with the
-  program's code in the cache: its run time is the whole process, and it has no compile time.
-  Compiling is cached, so the size-0 estimates this file used before M3 would now time a cache load
-  (D-254). For `compile_large`, `cheby` is one cold `cheby run` of the project. `cheby check` time
-  is reported on the `cheby` row, as front-end time, from the same cache.
+- **Cheby** has two rows on the same programs. `cheby-aot` is `cheby build --release`, measured like
+  any AOT language, from a cache that holds std and none of the program. `cheby` is `cheby run`, the
+  debug profile, with the program's code in the cache: its run time is the whole process, and it has
+  no compile time. Compiling is cached, so the size-0 estimates this file used before M3 would now
+  time a cache load (D-254). For `compile_large`, `cheby` is one cold `cheby run` of the project.
+  `cheby check` time is reported on the `cheby` row, as front-end time, from the same cache.
 - Nothing else runs while measuring: the runner measures one thing at a time.

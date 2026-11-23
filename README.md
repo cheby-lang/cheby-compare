@@ -13,7 +13,7 @@ before adding or changing an implementation.
 | Id                  | Language             | Kind        | Notes                                                   |
 | ------------------- | -------------------- | ----------- | ------------------------------------------------------- |
 | `cheby`             | Cheby                | JIT         | `cheby run`, whole process with a warm cache, see below |
-| `cheby-aot`         | Cheby (AOT)          | AOT         | `cheby build` of the same programs, see below           |
+| `cheby-aot`         | Cheby (AOT)          | AOT         | `cheby build --release` of the same programs, see below |
 | `gleam`             | Gleam                | BEAM        | concurrency through `gleam_erlang` and `gleam_otp`      |
 | `rust`              | Rust                 | AOT         | the baseline of the summary ratios                      |
 | `go`                | Go                   | AOT         |                                                         |
@@ -200,35 +200,73 @@ The full rules are in [CONVENTIONS.md](CONVENTIONS.md#measurement). In short:
 
 ### Cheby's two rows
 
-Cheby has two rows on the same programs, `benchmarks/<bench>/cheby/`. Each has its own build cache
-under `build/`, through `CHEBY_CACHE`, so a measurement never touches the machine's cache.
+Cheby has two rows on the same programs, `benchmarks/<bench>/cheby/`. They differ in how the program
+is run and in the build profile. Each has its own build cache under `build/`, through `CHEBY_CACHE`,
+so a measurement never touches the machine's cache.
 
-- **Cheby (AOT)**, id `cheby-aot`, is `cheby build`. Its run time is the executable, its artifact
-  size is the executable, and its compile time is a build from a cache that holds the standard
-  library and none of the program.
-- **Cheby (JIT, whole process)**, id `cheby`, is `cheby run` with the program's code in the cache.
-  Its run time is the whole process: start-up, loading the cached code and the program. It has no
-  compile time of its own, so it shows none and is left out of the compile means.
+- **Cheby (AOT)**, id `cheby-aot`, is `cheby build --release`. Its run time is the executable, its
+  artifact size is the executable, and its compile time is a release build from a cache that holds
+  the standard library and none of the program. This is the row to compare with the other languages,
+  which all build with their release defaults.
+- **Cheby (JIT, whole process)**, id `cheby`, is `cheby run` as a developer types it: the debug
+  profile, with the program's code in the cache. Its run time is the whole process: start-up,
+  loading the cached code and the program. It has no compile time of its own, so it shows none and
+  is left out of the compile means.
 
-**Why the cache is reset.** `cheby build` caches each module's compiled code, so a rebuild that
-only removes the executable compiles nothing. `clean` runs `runner/cheby-cache.sh`, which restores
-a seed that holds std, as other languages keep their compiled standard library. An untimed build
-of `runner/cheby-seed/`, a program that reaches every std module the benchmarks use, fills the seed
-once per `cheby` binary. A timed build compiles the program and links it. Most of its time is the
-link, and the debug profile is the only one until Cheby's milestone M6, so its code is unoptimised.
+**The release profile.** Cheby gained `--release` on 2026-11-22. A release build calls functions
+directly, runs Cranelift's optimizer, inlines small functions across modules and from the standard
+library, and makes its own copies of generic functions for the dictionaries and callbacks it passes
+them. The debug profile does none of that across modules, so that an edit rebuilds one module. Until
+2026-11-22 both rows were debug builds.
 
-**Why the JIT has no estimate any more.** Until M3 the runner estimated compile time as a size-0
-run and run time as a bench-size run minus that. `cheby run` now loads cached code, so a warm
-size-0 run compiles nothing, and that estimate would be a cache load.
+**Why the cache is reset.** `cheby build` caches each module's compiled code, so a rebuild that only
+removes the executable compiles nothing. `clean` runs `runner/cheby-cache.sh`, which restores a seed
+that holds std in both profiles, as other languages keep their compiled standard library. Two
+untimed builds of `runner/cheby-seed/`, a program that reaches every std module the benchmarks use,
+fill the seed once per `cheby` binary. A timed build compiles the program and links it. Most of its
+time is the link.
+
+**Why the JIT has no estimate any more.** Until M3 the runner estimated compile time as a size-0 run
+and run time as a bench-size run minus that. `cheby run` now loads cached code, so a warm size-0 run
+compiles nothing, and that estimate would be a cache load.
 
 For `compile_large`, the JIT row is one cold `cheby run` of the generated project from the same
-seed, and the AOT row is one `cheby build`. `cheby check` is timed from the seed too, on the JIT
-row, and reported as front-end time.
+seed, and the AOT row is one `cheby build --release`. `cheby check` is timed from the seed too, on
+the JIT row, and reported as front-end time.
 
 ## Cheby's strengths and weaknesses
 
-_This section analyses the Cheby rows of 2026-11-22, measured at commit `7a586d82`. The other
-languages' rows are from 2026-10-19 on the same machine._
+_This section and the per-benchmark notes analyse the Cheby rows of 2026-11-22, measured at commit
+`7a586d82`. The tables in Results are newer: Cheby was measured again on 2026-11-23 at commit
+`e9b6af0b`, after a round of optimization that the analysis below asked for, and the AOT row is now
+a release build. Where the two differ, the tables are right. The other languages' rows are from
+2026-10-19 on the same machine._
+
+**What changed on 2026-11-23.** Against Rust, Cheby's executables now take 3.86× on the CPU group,
+8.12× on the data group and 5.11× on both together, where the analysis below quotes 9.68×, 13.1× and
+10.8×. That puts Cheby level with Clojure (5.13×) and ahead of Koka (5.70×) on CPU and data
+together, where it was level with the BEAM languages. `cheby run`, still the debug profile, stands
+at 4.29×, 8.25× and 5.48×. Median run times:
+
+| Benchmark        | AOT, 11-22 | AOT, 11-23 | `cheby run`, 11-22 | `cheby run`, 11-23 |
+| ---------------- | ---------: | ---------: | -----------------: | -----------------: |
+| `binary_trees`   |     1.06 s |     900 ms |             1.04 s |             898 ms |
+| `nbody`          |    27.24 s |    13.16 s |            28.20 s |            13.63 s |
+| `spectral_norm`  |    21.48 s |     5.16 s |            21.55 s |             5.58 s |
+| `mandelbrot`     |     1.67 s |     945 ms |             1.67 s |             966 ms |
+| `fannkuch_redux` |     3.74 s |     679 ms |             3.56 s |             999 ms |
+| `word_freq`      |     2.07 s |     1.86 s |             2.13 s |             1.90 s |
+| `json_roundtrip` |     3.76 s |     2.88 s |             3.87 s |             2.86 s |
+| `lru_cache`      |    25.75 s |     8.93 s |            26.48 s |             9.21 s |
+| `ping_pong`      |      57 ms |      55 ms |              64 ms |              62 ms |
+| `spawn_many`     |      76 ms |      51 ms |              84 ms |              61 ms |
+| `prime_sieve`    |      19 ms |      21 ms |              26 ms |              27 ms |
+
+Most of the costs that the weaknesses below name are gone or smaller: the `Some` of every
+`list::get`, the boxed result of `float::from_int`, the list pattern step that called the runtime,
+the full call per loop iteration, the sorted tree inside `ordered_map`, and the module constant that
+doubled a cold build. `docs/perf/optimization-log.md` in the Cheby repository lists each change with
+its measurement, and what is still open.
 
 On run time, Cheby's executables are 9.68× slower than Rust on the CPU group (5 benchmarks), 13.1×
 on the data group (3) and 10.8× on both together (8). These are the Summary's geometric means.
@@ -332,12 +370,12 @@ Caveats:
 ## Results
 
 <!-- results:start -->
-_Measured on Apple M3, macOS 27.0 (26A428), Cheby rows 2026-11-22, other languages 2026-10-19. Full tables: [RESULTS.md](RESULTS.md); charts: [report/index.html](report/index.html)._
+_Measured on Apple M3, macOS 27.0 (26A428), Cheby rows 2026-11-23, other languages 2026-10-19. Full tables: [RESULTS.md](RESULTS.md); charts: [report/index.html](report/index.html)._
 
 | Language                   | Kind        | CPU run vs Rust | Data run vs Rust | Concurrency run vs Rust | CPU + data run vs Rust | Compile vs Rust (cold) |
 | -------------------------- | ----------- | --------------: | ---------------: | ----------------------: | ---------------------: | ---------------------: |
-| Cheby (JIT, whole process) | jit         |       9.62× (5) |        13.5× (3) |               0.08× (3) |              10.9× (8) |                      – |
-| Cheby (AOT)                | aot         |       9.68× (5) |        13.1× (3) |               0.07× (3) |              10.8× (8) |             0.34× (12) |
+| Cheby (JIT, whole process) | jit         |       4.29× (5) |        8.25× (3) |               0.07× (3) |              5.48× (8) |                      – |
+| Cheby (AOT)                | aot         |       3.86× (5) |        8.12× (3) |               0.06× (3) |              5.11× (8) |             0.34× (12) |
 | Gleam                      | beam        |       10.1× (5) |        27.6× (3) |               0.35× (3) |              14.7× (8) |             1.05× (12) |
 | Rust                       | aot         |       1.00× (5) |        1.00× (3) |               1.00× (3) |              1.00× (8) |             1.00× (12) |
 | Go                         | aot         |       1.08× (5) |        1.60× (3) |               0.05× (3) |              1.25× (8) |             1.22× (12) |

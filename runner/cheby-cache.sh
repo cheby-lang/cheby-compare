@@ -5,8 +5,9 @@
 #
 # Usage: cheby-cache.sh <cheby> <cache dir>
 #
-# The seed is <cache dir>.std. An untimed build of runner/cheby-seed fills it, once per cheby
-# binary: compiled code is keyed by the compiler, so another binary's seed is of no use.
+# The seed is <cache dir>.std. Two untimed builds of runner/cheby-seed fill it, one in each
+# profile, once per cheby binary: compiled code is keyed by the compiler and by the profile, so
+# another binary's seed is of no use, and a release build needs std's release code.
 set -eu
 
 cheby=$1
@@ -19,6 +20,7 @@ if [ "$(cat "$seed.stamp" 2>/dev/null)" != "$stamp" ]; then
   mkdir -p "$(dirname "$seed")"
   rm -rf "$seed"
   (cd "$here/cheby-seed" && CHEBY_CACHE=$seed "$cheby" build -o "$seed.bin")
+  (cd "$here/cheby-seed" && CHEBY_CACHE=$seed "$cheby" build --release -o "$seed.bin")
   rm -f "$seed.bin"
   printf '%s\n' "$stamp" >"$seed.stamp"
 fi
