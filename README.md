@@ -238,29 +238,32 @@ the JIT row, and reported as front-end time.
 
 _This section and the per-benchmark notes analyse the Cheby rows of 2026-11-22, measured at commit
 `7a586d82`. The tables in Results are newer: Cheby was measured again on 2026-11-23 at commit
-`4480f4ae`, after a round of optimization that the analysis below asked for, and the AOT row is now
+`84f978f0`, after a round of optimization that the analysis below asked for, and the AOT row is now
 a release build. Where the two differ, the tables are right. The other languages' rows are from
 2026-10-19 on the same machine._
 
-**What changed on 2026-11-23.** Against Rust, Cheby's executables now take 3.85× on the CPU group,
-7.15× on the data group and 4.85× on both together, where the analysis below quotes 9.68×, 13.1× and
+**What changed on 2026-11-23.** Against Rust, Cheby's executables now take 3.84× on the CPU group,
+7.42× on the data group and 4.91× on both together, where the analysis below quotes 9.68×, 13.1× and
 10.8×. That puts Cheby ahead of Clojure (5.13×) and Koka (5.70×) on CPU and data together, where it
-was level with the BEAM languages. `cheby run`, still the debug profile, stands at 4.26×, 7.89× and
-5.37×. Median run times:
+was level with the BEAM languages. `cheby run`, still the debug profile, stands at 4.30×, 8.02× and
+5.43×. In this run `word_freq`'s ten readings spread 19% around the executable's median and 14%
+around `cheby run`'s, against 5% and 4% in the run before. The executable retires 20.3 G
+instructions where it retired 20.6 G then, so its slower median here comes from the machine, not
+from Cheby. Median run times:
 
 | Benchmark        | AOT, 11-22 | AOT, 11-23 | `cheby run`, 11-22 | `cheby run`, 11-23 |
 | ---------------- | ---------: | ---------: | -----------------: | -----------------: |
-| `binary_trees`   |     1.06 s |     892 ms |             1.04 s |             872 ms |
-| `nbody`          |    27.24 s |    13.04 s |            28.20 s |            13.72 s |
-| `spectral_norm`  |    21.48 s |     5.18 s |            21.55 s |             5.57 s |
-| `mandelbrot`     |     1.67 s |     942 ms |             1.67 s |             963 ms |
-| `fannkuch_redux` |     3.74 s |     675 ms |             3.56 s |             993 ms |
-| `word_freq`      |     2.07 s |     1.56 s |             2.13 s |             1.72 s |
-| `json_roundtrip` |     3.76 s |     2.85 s |             3.87 s |             2.91 s |
-| `lru_cache`      |    25.75 s |     7.33 s |            26.48 s |             8.77 s |
-| `ping_pong`      |      57 ms |      54 ms |              64 ms |              63 ms |
-| `spawn_many`     |      76 ms |      50 ms |              84 ms |              59 ms |
-| `prime_sieve`    |      19 ms |      21 ms |              26 ms |              26 ms |
+| `binary_trees`   |     1.06 s |     893 ms |             1.04 s |             895 ms |
+| `nbody`          |    27.24 s |    12.55 s |            28.20 s |            13.66 s |
+| `spectral_norm`  |    21.48 s |     5.20 s |            21.55 s |             5.66 s |
+| `mandelbrot`     |     1.67 s |     956 ms |             1.67 s |             961 ms |
+| `fannkuch_redux` |     3.74 s |     677 ms |             3.56 s |             1.01 s |
+| `word_freq`      |     2.07 s |     1.72 s |             2.13 s |             1.76 s |
+| `json_roundtrip` |     3.76 s |     2.86 s |             3.87 s |             2.95 s |
+| `lru_cache`      |    25.75 s |     7.39 s |            26.48 s |             8.88 s |
+| `ping_pong`      |      57 ms |      56 ms |              64 ms |              63 ms |
+| `spawn_many`     |      76 ms |      51 ms |              84 ms |              59 ms |
+| `prime_sieve`    |      19 ms |      19 ms |              26 ms |              26 ms |
 
 Most of the costs that the weaknesses below name are gone or smaller: the `Some` of every
 `list::get`, the boxed result of `float::from_int`, the list pattern step that called the runtime,
@@ -374,8 +377,8 @@ _Measured on Apple M3, macOS 27.0 (26A428), Cheby rows 2026-11-23, other languag
 
 | Language                   | Kind        | CPU run vs Rust | Data run vs Rust | Concurrency run vs Rust | CPU + data run vs Rust | Compile vs Rust (cold) |
 | -------------------------- | ----------- | --------------: | ---------------: | ----------------------: | ---------------------: | ---------------------: |
-| Cheby (JIT, whole process) | jit         |       4.26× (5) |        7.89× (3) |               0.07× (3) |              5.37× (8) |                      – |
-| Cheby (AOT)                | aot         |       3.85× (5) |        7.15× (3) |               0.06× (3) |              4.85× (8) |             0.32× (12) |
+| Cheby (JIT, whole process) | jit         |       4.30× (5) |        8.02× (3) |               0.07× (3) |              5.43× (8) |                      – |
+| Cheby (AOT)                | aot         |       3.84× (5) |        7.42× (3) |               0.06× (3) |              4.91× (8) |             0.33× (12) |
 | Gleam                      | beam        |       10.1× (5) |        27.6× (3) |               0.35× (3) |              14.7× (8) |             1.05× (12) |
 | Rust                       | aot         |       1.00× (5) |        1.00× (3) |               1.00× (3) |              1.00× (8) |             1.00× (12) |
 | Go                         | aot         |       1.08× (5) |        1.60× (3) |               0.05× (3) |              1.25× (8) |             1.22× (12) |
