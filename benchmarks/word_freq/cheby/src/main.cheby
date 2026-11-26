@@ -19,8 +19,12 @@ const top: Int = 20
 fn main() {
   let assert [path, ..] = env::args()
   let assert Ok(text) = io::read_file(path)
-  let counts = text |> string::split(_, "\n") |> list::fold(_, map::new(), count_line)
-  let ranked = counts |> map::to_list |> list::sort_with(_, by_frequency)
+  let counts = text
+    |> string::split(_, "\n")
+    |> list::fold(_, map::new(), count_line)
+  let ranked = counts
+    |> map::to_list
+    |> list::sort_with(_, by_frequency)
   let total = list::fold(ranked, 0, fn(sum, entry) {
     let (_, count) = entry
     sum + count
@@ -28,13 +32,17 @@ fn main() {
   let distinct = map::size(counts)
   io::println("total {total}")
   io::println("distinct {distinct}")
-  ranked |> list::take(_, top) |> list::each(_, print_entry)
+  ranked
+  |> list::take(_, top)
+  |> list::each(_, print_entry)
 }
 
 /// Adds the words of one line to `counts`. Two spaces in a row, or an
 /// empty line, give an empty part, which is not a word.
 fn count_line(counts: Map<String, Int>, line: String) -> Map<String, Int> {
-  line |> string::split(_, " ") |> list::fold(_, counts, count_word)
+  line
+  |> string::split(_, " ")
+  |> list::fold(_, counts, count_word)
 }
 
 /// Adds one occurrence of `word` to `counts`, unless it is empty.

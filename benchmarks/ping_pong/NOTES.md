@@ -27,7 +27,7 @@
   none of capacity 0. Koka's row is single-threaded and not comparable.
 - **The executable peaks at 3.9 MB.** Go peaks at 4.3 MB, rust-tokio at 2.3 MB, Rust at 1.8 MB and
   the BEAM rows at 71 MB to 72 MB. `cheby run` peaks at 18.9 MB, close to the 16.4 MB floor of any
-  `cheby run` process (`hello_world`). The program has 49 lines, against 32 for Go and 24 for
+  `cheby run` process (`hello_world`). The program has 39 lines, against 32 for Go and 24 for
   Erlang.
 - **The kernel sets the time of the OS-thread rows.** The compiled ones, Rust, Odin, Zig, Nim and
   C++, take 677 ms to 800 ms, and system time is most of each run: 574 ms for Rust and 712 ms for

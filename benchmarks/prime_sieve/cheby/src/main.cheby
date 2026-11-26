@@ -16,7 +16,10 @@ import std::int
 import std::io
 
 /// The last prime found and the sum of all primes found.
-type Found { last: Int, sum: Int }
+type Found {
+  last: Int,
+  sum: Int,
+}
 
 fn main() {
   let assert [arg, ..] = env::args()

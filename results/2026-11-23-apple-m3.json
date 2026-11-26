@@ -1680,7 +1680,7 @@
    "libs": [],
    "notes": "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T03:59:47+03:00",
-   "loc": 157,
+   "loc": 146,
    "run": {
     "median": 13.73833204968,
     "mean": 13.739311702679998,
@@ -3314,7 +3314,7 @@
    "libs": [],
    "notes": "A(i, j) is written out in row_sum and column_sum instead of in an `entry(i, j) -> Float` helper. The helper is the more idiomatic shape, but a Float returned from a function is boxed (D-453), and the helper version measured about 1.65x slower at n = 1000 (2.04-2.13 s against 1.25-1.27 s), which would take the bench size (n = 5500) from about 60 s to about 100 s of user time, against the 300 s timeout. fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T04:02:03+03:00",
-   "loc": 64,
+   "loc": 65,
    "run": {
     "median": 5.65427216406,
     "mean": 5.655401080393333,
@@ -8256,7 +8256,7 @@
    "libs": [],
    "notes": "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T04:03:54+03:00",
-   "loc": 49,
+   "loc": 57,
    "run": {
     "median": 1.7991390201000002,
     "mean": 1.8139256533,
@@ -9911,7 +9911,7 @@
    "libs": [],
    "notes": "",
    "measured_at": "2026-11-24T04:04:43+03:00",
-   "loc": 137,
+   "loc": 144,
    "run": {
     "median": 2.69510495904,
     "mean": 2.69091566274,
@@ -13257,7 +13257,7 @@
    "libs": [],
    "notes": "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T04:07:22+03:00",
-   "loc": 49,
+   "loc": 39,
    "run": {
     "median": 0.06101843232,
     "mean": 0.06181292012,
@@ -17128,7 +17128,7 @@
    "libs": [],
    "notes": "",
    "measured_at": "2026-11-24T04:07:33+03:00",
-   "loc": 46,
+   "loc": 49,
    "run": {
     "median": 0.02638516466,
     "mean": 0.02624292726,
@@ -23049,7 +23049,7 @@
    "libs": [],
    "notes": "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T04:00:57+03:00",
-   "loc": 157,
+   "loc": 146,
    "run": {
     "median": 12.70298469776,
     "mean": 12.718632336426667,
@@ -23126,7 +23126,7 @@
    "libs": [],
    "notes": "A(i, j) is written out in row_sum and column_sum instead of in an `entry(i, j) -> Float` helper. The helper is the more idiomatic shape, but a Float returned from a function is boxed (D-453), and the helper version measured about 1.65x slower at n = 1000 (2.04-2.13 s against 1.25-1.27 s), which would take the bench size (n = 5500) from about 60 s to about 100 s of user time, against the 300 s timeout. fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T04:02:32+03:00",
-   "loc": 64,
+   "loc": 65,
    "run": {
     "median": 5.23435742586,
     "mean": 5.234655717526667,
@@ -23371,7 +23371,7 @@
    "libs": [],
    "notes": "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T04:04:19+03:00",
-   "loc": 49,
+   "loc": 57,
    "run": {
     "median": 1.6517666952,
     "mean": 1.6506294658999998,
@@ -23455,7 +23455,7 @@
    "libs": [],
    "notes": "",
    "measured_at": "2026-11-24T04:05:20+03:00",
-   "loc": 137,
+   "loc": 144,
    "run": {
     "median": 2.6630426618799996,
     "mean": 2.6621844035800004,
@@ -23618,7 +23618,7 @@
    "libs": [],
    "notes": "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T04:07:24+03:00",
-   "loc": 49,
+   "loc": 39,
    "run": {
     "median": 0.05552401104000001,
     "mean": 0.05615556104000001,
@@ -23786,7 +23786,7 @@
    "libs": [],
    "notes": "",
    "measured_at": "2026-11-24T04:07:35+03:00",
-   "loc": 46,
+   "loc": 49,
    "run": {
     "median": 0.020104137680000002,
     "mean": 0.020107596080000005,

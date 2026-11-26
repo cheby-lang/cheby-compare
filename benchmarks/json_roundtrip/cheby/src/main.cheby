@@ -7,20 +7,27 @@
 //! repetition counts the output's bytes, and the last one also hashes
 //! them with FNV-1a, since every repetition writes the same text.
 
-import std::env
 import std::bytes
+import std::env
 import std::int
 import std::io
 import std::json
 import std::json::decode
 import std::list
 
-const fnv_offset: Int = 2166136261
-const fnv_prime: Int = 16777619
+const fnv_offset: Int = 2_166_136_261
+const fnv_prime: Int = 16_777_619
 
-type Address { street: String, city: String, zip: Int }
+type Address {
+  street: String,
+  city: String,
+  zip: Int,
+}
 
-type Entry { day: Int, amount: Int }
+type Entry {
+  day: Int,
+  amount: Int,
+}
 
 type Record {
   id: Int,

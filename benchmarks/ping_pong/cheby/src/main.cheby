@@ -30,13 +30,7 @@ fn exchange(n: Int) -> Result<Int, fiber::Panic> {
 }
 
 /// Sends `i` to `n` on `ping`, adding each answer from `pong` to `sum`.
-fn play(
-  ping: channel::Sender<Int>,
-  pong: channel::Receiver<Int>,
-  n: Int,
-  i: Int,
-  sum: Int,
-) -> Int {
+fn play(ping: channel::Sender<Int>, pong: channel::Receiver<Int>, n: Int, i: Int, sum: Int) -> Int {
   case i > n {
     True => sum
     False => {
@@ -49,11 +43,7 @@ fn play(
 
 /// Answers `remaining` values from `ping` with the value plus one on
 /// `pong`.
-fn echo(
-  ping: channel::Receiver<Int>,
-  pong: channel::Sender<Int>,
-  remaining: Int,
-) {
+fn echo(ping: channel::Receiver<Int>, pong: channel::Sender<Int>, remaining: Int) {
   case remaining {
     0 => Nil
     _ => {

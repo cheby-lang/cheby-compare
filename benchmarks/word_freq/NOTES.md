@@ -31,7 +31,7 @@
   on a Rust kernel.
 - **The rows differ in their splitters, and Cheby's program is long.** Java and Scala split with a
   regex and C# on a char array (see the SPEC), and Koka counts in a red-black tree that the program
-  writes itself. Cheby's 49 lines are the third most, after Koka (79) and Gleam (62), partly because
+  writes itself. Cheby's 57 lines are the third most, after Koka (79) and Gleam (62), partly because
   each std module needs its own import (7 lines) and the fold callbacks are separate functions.
 - **Swift's 1.0 GB peak RSS comes from its splitter.** `split(whereSeparator:)` builds the whole
   array of word slices before counting (see its `impl.toml`). The rows that count while they split

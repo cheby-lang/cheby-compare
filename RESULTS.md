@@ -139,8 +139,8 @@ Bench size arguments: `22000000`.
 | TypeScript                 |      1.19 s [1.19 s–1.20 s] |      2.31× |          33 ms |                     – |    25 ms |  52.8 MB |   3.4 KB | 118 | –         |
 | Clojure                    |      1.68 s [1.66 s–1.70 s] |      3.26× |         421 ms |                     – |   222 ms |   314 MB |  33.1 KB | 134 | –         |
 | Koka                       |      2.78 s [2.75 s–2.81 s] |      5.40× |         597 ms |                     – |   1.5 ms |   2.8 MB |   1.4 MB |  91 | –         |
-| Cheby (AOT)                |      12.7 s [12.7 s–12.8 s] |      24.7× |          67 ms |                     – |   1.7 ms |   3.9 MB |   1.3 MB | 157 | –         |
-| Cheby (JIT, whole process) |      13.7 s [13.7 s–13.7 s] |      26.7× |              – |                     – |   7.9 ms |  18.9 MB |        – | 157 | –         |
+| Cheby (AOT)                |      12.7 s [12.7 s–12.8 s] |      24.7× |          67 ms |                     – |   1.7 ms |   3.9 MB |   1.3 MB | 146 | –         |
+| Cheby (JIT, whole process) |      13.7 s [13.7 s–13.7 s] |      26.7× |              – |                     – |   7.9 ms |  18.9 MB |        – | 146 | –         |
 | Erlang                     |      17.2 s [17.2 s–17.3 s] |      33.5× |         146 ms |                     – |    88 ms |  71.3 MB |   4.0 KB |  68 | –         |
 | Elixir                     |      23.8 s [23.8 s–24.1 s] |      46.3× |         328 ms |                     – |    90 ms |  72.0 MB |   8.9 KB | 103 | –         |
 | Gleam                      |      26.2 s [26.0 s–26.2 s] |      50.9× |         205 ms |                     – |    87 ms |  71.4 MB |  16.0 KB | 190 | –         |
@@ -209,8 +209,8 @@ Bench size arguments: `5500`.
 | TypeScript                 |       1.58 s [1.58 s–1.58 s] |      1.98× |          37 ms |                     – |    26 ms |  52.2 MB |   1.6 KB |  45 | –         |
 | Nim                        |       1.65 s [1.63 s–1.74 s] |      2.07× |         510 ms |                     – |   1.1 ms |   1.8 MB |  91.6 KB |  39 | –         |
 | Clojure                    |       3.91 s [3.80 s–4.16 s] |      4.90× |         521 ms |                     – |   267 ms |   802 MB |  23.4 KB |  39 | –         |
-| Cheby (AOT)                |       5.23 s [5.23 s–5.24 s] |      6.55× |          62 ms |                     – |   1.9 ms |   4.6 MB |   1.3 MB |  64 | –         |
-| Cheby (JIT, whole process) |       5.65 s [5.65 s–5.67 s] |      7.08× |              – |                     – |   7.6 ms |  19.3 MB |        – |  64 | –         |
+| Cheby (AOT)                |       5.23 s [5.23 s–5.24 s] |      6.55× |          62 ms |                     – |   1.9 ms |   4.6 MB |   1.3 MB |  65 | –         |
+| Cheby (JIT, whole process) |       5.65 s [5.65 s–5.67 s] |      7.08× |              – |                     – |   7.6 ms |  19.3 MB |        – |  65 | –         |
 | Koka                       |       5.96 s [5.93 s–5.98 s] |      7.46× |         611 ms |                     – |   1.6 ms |   3.9 MB |   1.4 MB |  42 | –         |
 | Erlang                     |       8.58 s [8.55 s–9.90 s] |      10.7× |         139 ms |                     – |    90 ms |  75.0 MB |   2.1 KB |  30 | –         |
 | Elixir                     |       9.51 s [9.50 s–9.74 s] |      11.9× |         388 ms |                     – |    99 ms |  75.4 MB |   5.2 KB |  29 | –         |
@@ -415,8 +415,8 @@ Bench size arguments: `{data}/words-bench.txt`.
 | Java                       |      1.45 s [1.34 s–2.00 s] |      4.56× |         259 ms |                     – |    25 ms |   995 MB |   3.3 KB |  35 | –         |
 | C#                         |      1.52 s [1.49 s–1.56 s] |      4.78× |         1.23 s |                624 ms |    27 ms |   942 MB |   6.0 KB |  25 | –         |
 | Scala                      |      1.61 s [1.54 s–1.69 s] |      5.09× |         1.34 s |                433 ms |    90 ms |  1005 MB |  12.5 KB |  19 | –         |
-| Cheby (AOT)                |      1.65 s [1.62 s–1.68 s] |      5.21× |          64 ms |                     – |   1.8 ms |   229 MB |   1.4 MB |  49 | –         |
-| Cheby (JIT, whole process) |      1.80 s [1.79 s–1.89 s] |      5.67× |              – |                     – |   8.3 ms |   246 MB |        – |  49 | –         |
+| Cheby (AOT)                |      1.65 s [1.62 s–1.68 s] |      5.21× |          64 ms |                     – |   1.8 ms |   229 MB |   1.4 MB |  57 | –         |
+| Cheby (JIT, whole process) |      1.80 s [1.79 s–1.89 s] |      5.67× |              – |                     – |   8.3 ms |   246 MB |        – |  57 | –         |
 | TypeScript                 |      1.91 s [1.83 s–2.46 s] |      6.01× |          35 ms |                     – |    33 ms |   934 MB |    827 B |  19 | –         |
 | Ruby                       |      2.24 s [2.22 s–2.27 s] |      7.06× |           none |                     – |    30 ms |   792 MB |        – |   7 | –         |
 | OCaml                      |      2.44 s [2.40 s–2.59 s] |      7.70× |         189 ms |                     – |   1.7 ms |   315 MB |   1.2 MB |  30 | –         |
@@ -465,7 +465,7 @@ Cheby (JIT, whole process): `cheby run` with the program's compiled code in the 
   on a Rust kernel.
 - **The rows differ in their splitters, and Cheby's program is long.** Java and Scala split with a
   regex and C# on a char array (see the SPEC), and Koka counts in a red-black tree that the program
-  writes itself. Cheby's 49 lines are the third most, after Koka (79) and Gleam (62), partly because
+  writes itself. Cheby's 57 lines are the third most, after Koka (79) and Gleam (62), partly because
   each std module needs its own import (7 lines) and the fold callbacks are separate functions.
 - **Swift's 1.0 GB peak RSS comes from its splitter.** `split(whereSeparator:)` builds the whole
   array of word slices before counting (see its `impl.toml`). The rows that count while they split
@@ -490,8 +490,8 @@ Bench size arguments: `{data}/json-bench.json 9`.
 | C++                        |      1.90 s [1.89 s–1.93 s] |      4.91× |         2.02 s |                     – |   1.4 ms |   137 MB |   227 KB |  92 | nlohmann/json 3.12.0                                                 |
 | Clojure                    |      2.52 s [2.47 s–2.54 s] |      6.50× |         452 ms |                     – |   277 ms |   2.0 GB |  28.9 KB |  61 | clojure.data.json 2.5.2                                              |
 | Nim                        |      2.61 s [2.60 s–2.64 s] |      6.74× |         571 ms |                     – |   1.2 ms |   460 MB |   178 KB |  74 | –                                                                    |
-| Cheby (AOT)                |      2.66 s [2.65 s–2.67 s] |      6.88× |          71 ms |                     – |   2.1 ms |   205 MB |   1.6 MB | 137 | –                                                                    |
-| Cheby (JIT, whole process) |      2.70 s [2.63 s–2.76 s] |      6.96× |              – |                     – |   9.7 ms |   207 MB |        – | 137 | –                                                                    |
+| Cheby (AOT)                |      2.66 s [2.65 s–2.67 s] |      6.88× |          71 ms |                     – |   2.1 ms |   205 MB |   1.6 MB | 144 | –                                                                    |
+| Cheby (JIT, whole process) |      2.70 s [2.63 s–2.76 s] |      6.96× |              – |                     – |   9.7 ms |   207 MB |        – | 144 | –                                                                    |
 | Python                     |      3.08 s [3.03 s–3.09 s] |      7.95× |           none |                     – |    18 ms |   321 MB |        – |  56 | –                                                                    |
 | Swift                      |      3.27 s [3.25 s–3.35 s] |      8.46× |         653 ms |                     – |   3.0 ms |   113 MB |  97.1 KB | 169 | –                                                                    |
 | Elixir                     |      3.36 s [3.34 s–3.47 s] |      8.69× |         388 ms |                     – |    99 ms |   544 MB |  29.8 KB |  99 | –                                                                    |
@@ -619,8 +619,8 @@ Bench size arguments: `300000`.
 | Language                   | Run time (median [min–max]) |     vs fastest | Compile (cold) | Compile (warm server) | Start-up | Peak RSS | Artifact | LOC | Libraries                      |
 | -------------------------- | --------------------------: | -------------: | -------------: | --------------------: | -------: | -------: | -------: | --: | ------------------------------ |
 | Rust (tokio)               |         51 ms [49 ms–54 ms] |          1.00× |         306 ms |                     – |   1.5 ms |   2.2 MB |   850 KB |  32 | tokio                          |
-| Cheby (AOT)                |         56 ms [54 ms–62 ms] |          1.08× |          65 ms |                     – |   1.9 ms |   4.1 MB |   1.3 MB |  49 | –                              |
-| Cheby (JIT, whole process) |         61 ms [60 ms–64 ms] |          1.19× |              – |                     – |   8.7 ms |  19.6 MB |        – |  49 | –                              |
+| Cheby (AOT)                |         56 ms [54 ms–62 ms] |          1.08× |          65 ms |                     – |   1.9 ms |   4.1 MB |   1.3 MB |  39 | –                              |
+| Cheby (JIT, whole process) |         61 ms [60 ms–64 ms] |          1.19× |              – |                     – |   8.7 ms |  19.6 MB |        – |  39 | –                              |
 | Go                         |         63 ms [62 ms–63 ms] |          1.22× |         296 ms |                     – |   1.7 ms |   4.3 MB |   2.3 MB |  32 | –                              |
 | TypeScript                 |       101 ms [96 ms–106 ms] |          1.96× |          35 ms |                     – |    25 ms |  54.5 MB |   1.5 KB |  56 | –                              |
 | Erlang                     |      215 ms [210 ms–221 ms] |          4.18× |         136 ms |                     – |    90 ms |  71.8 MB |   1.2 KB |  24 | –                              |
@@ -680,7 +680,7 @@ Cheby (JIT, whole process): `cheby run` with the program's compiled code in the 
   none of capacity 0. Koka's row is single-threaded and not comparable.
 - **The executable peaks at 3.9 MB.** Go peaks at 4.3 MB, rust-tokio at 2.3 MB, Rust at 1.8 MB and
   the BEAM rows at 71 MB to 72 MB. `cheby run` peaks at 18.9 MB, close to the 16.4 MB floor of any
-  `cheby run` process (`hello_world`). The program has 49 lines, against 32 for Go and 24 for
+  `cheby run` process (`hello_world`). The program has 39 lines, against 32 for Go and 24 for
   Erlang.
 - **The kernel sets the time of the OS-thread rows.** The compiled ones, Rust, Odin, Zig, Nim and
   C++, take 677 ms to 800 ms, and system time is most of each run: 574 ms for Rust and 712 ms for
@@ -782,8 +782,8 @@ Bench size arguments: `800`.
 
 | Language                   | Run time (median [min–max]) |     vs fastest | Compile (cold) | Compile (warm server) | Start-up | Peak RSS | Artifact | LOC | Libraries                      |
 | -------------------------- | --------------------------: | -------------: | -------------: | --------------------: | -------: | -------: | -------: | --: | ------------------------------ |
-| Cheby (AOT)                |         20 ms [17 ms–24 ms] |          1.00× |          66 ms |                     – |   1.7 ms |  18.1 MB |   1.3 MB |  46 | –                              |
-| Cheby (JIT, whole process) |         26 ms [24 ms–28 ms] |          1.31× |              – |                     – |   9.1 ms |  34.6 MB |        – |  46 | –                              |
+| Cheby (AOT)                |         20 ms [17 ms–24 ms] |          1.00× |          66 ms |                     – |   1.7 ms |  18.1 MB |   1.3 MB |  49 | –                              |
+| Cheby (JIT, whole process) |         26 ms [24 ms–28 ms] |          1.31× |              – |                     – |   9.1 ms |  34.6 MB |        – |  49 | –                              |
 | Go                         |         28 ms [19 ms–34 ms] |          1.39× |         214 ms |                     – |   1.8 ms |   6.9 MB |   2.3 MB |  40 | –                              |
 | Rust (tokio)               |         34 ms [29 ms–47 ms] |          1.71× |         292 ms |                     – |   1.5 ms |   3.8 MB |   851 KB |  38 | tokio                          |
 | Swift                      |        98 ms [96 ms–107 ms] |          4.87× |         477 ms |                     – |   1.9 ms |   4.1 MB |  78.4 KB |  52 | –                              |

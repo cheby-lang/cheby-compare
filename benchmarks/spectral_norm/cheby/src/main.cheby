@@ -79,7 +79,8 @@ fn power(u: List<Float>, steps: Int) -> (List<Float>, List<Float>) {
 
 /// Returns the sum of x[i] * y[i], front to back.
 fn dot(x: List<Float>, y: List<Float>) -> Float {
-  list::zip(x, y) |> list::fold(_, 0.0, fn(sum, (a, b)) { sum + a * b })
+  list::zip(x, y)
+  |> list::fold(_, 0.0, fn(sum, (a, b)) { sum + a * b })
 }
 
 /// Returns round(sqrt(uv / vv) * 10^9), or 0 when v is empty.
@@ -89,7 +90,7 @@ fn norm(u: List<Float>, v: List<Float>) -> Int {
     True => 0
     False => {
       let ratio = dot(u, v) / vv
-      let assert Ok(scaled) = float::round(float::sqrt(ratio) * 1000000000.0)
+      let assert Ok(scaled) = float::round(float::sqrt(ratio) * 1_000_000_000.0)
       scaled
     }
   }

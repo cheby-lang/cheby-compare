@@ -47,15 +47,7 @@ fn main() {
 
 /// A planet from its position, its velocity in units per day and its mass
 /// in solar masses.
-fn planet(
-  x: Float,
-  y: Float,
-  z: Float,
-  vx: Float,
-  vy: Float,
-  vz: Float,
-  mass: Float,
-) -> Body {
+fn planet(x: Float, y: Float, z: Float, vx: Float, vy: Float, vz: Float, mass: Float) -> Body {
   Body {
     x: x,
     y: y,
@@ -116,12 +108,7 @@ fn offset_momentum(bodies: List<Body>) -> List<Body> {
     (px + b.vx * b.mass, py + b.vy * b.mass, pz + b.vz * b.mass)
   })
   let assert [sun, ..planets] = bodies
-  let still = Body {
-    ..sun,
-    vx: -px / solar_mass,
-    vy: -py / solar_mass,
-    vz: -pz / solar_mass,
-  }
+  let still = Body { ..sun, vx: -px / solar_mass, vy: -py / solar_mass, vz: -pz / solar_mass }
   [still, ..planets]
 }
 
@@ -148,7 +135,9 @@ fn energy(bodies: List<Body>) -> Float {
 
 /// One step: every pair pulls on each other, then every body moves.
 fn advance(bodies: List<Body>) -> List<Body> {
-  bodies |> interact |> list::map(_, drift)
+  bodies
+  |> interact
+  |> list::map(_, drift)
 }
 
 /// Applies the pull of every pair `(i, j)` with `i < j`, in order: the
