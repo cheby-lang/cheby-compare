@@ -35,14 +35,22 @@ fn main() {
   let assert [arg, ..] = env::args()
   let assert Ok(steps) = int::parse(arg)
   let start = offset_momentum(initial_bodies())
-  io::println(int::show(scaled(energy(start))))
+  start
+  |> energy
+  |> scaled
+  |> int::show
+  |> io::println
   fn run(remaining, bodies) {
     case remaining {
       0 => bodies
       _ => run(remaining - 1, advance(bodies))
     }
   }
-  io::println(int::show(scaled(energy(run(steps, start)))))
+  run(steps, start)
+  |> energy
+  |> scaled
+  |> int::show
+  |> io::println
 }
 
 /// A planet from its position, its velocity in units per day and its mass

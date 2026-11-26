@@ -1680,7 +1680,7 @@
    "libs": [],
    "notes": "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T03:59:47+03:00",
-   "loc": 146,
+   "loc": 154,
    "run": {
     "median": 13.73833204968,
     "mean": 13.739311702679998,
@@ -23049,7 +23049,7 @@
    "libs": [],
    "notes": "fmt form checked by hand: `cheby fmt` does not exist before M5. Rerun `cheby fmt` once it lands.",
    "measured_at": "2026-11-24T04:00:57+03:00",
-   "loc": 146,
+   "loc": 154,
    "run": {
     "median": 12.70298469776,
     "mean": 12.718632336426667,
